@@ -1,6 +1,6 @@
-use std::io::{Lines};
 use std::fs::File;
 use std::io::BufReader;
+use std::io::{BufRead, Lines};
 
 use itertools::Itertools;
 use reformation::Reformation;
@@ -35,14 +35,33 @@ struct Date {
     minute: u8,
 }
 
+pub fn group_file_by_empty_lines(reader: BufReader<File>) -> Vec<Vec<String>> {
+    reader
+        .lines()
+        .map(|line| line.unwrap())
+        .fold(vec![vec![]], |mut result, line| {
+            if line.trim().is_empty() {
+                result.push(Vec::new());
+                result
+            } else {
+                result.last_mut().unwrap().push(line);
+                result
+            }
+        })
+}
+
 // Create a method for parsing a line of ints
 pub fn parse_line_to_num(line: &str) -> Vec<i32> {
-    line.split_whitespace().map(|s| s.parse::<i32>().unwrap()).collect_vec()
+    line.split_whitespace()
+        .map(|s| s.parse::<i32>().unwrap())
+        .collect_vec()
 }
 
 // Create a method for parsing lines of a file to ints
 pub fn parse_lines_to_nums(lines: Lines<BufReader<File>>) -> Vec<i32> {
-    lines.map(|line| line.unwrap().parse::<i32>().unwrap()).collect_vec()
+    lines
+        .map(|line| line.unwrap().parse::<i32>().unwrap())
+        .collect_vec()
 }
 
 // #[allow(dead_code)]
