@@ -11,6 +11,26 @@ pub struct Coordinate {
     pub col: usize,
 }
 
+#[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[reformation("{lower}-{upper}")]
+pub struct Range {
+    pub lower: i32,
+    pub upper: i32
+}
+
+impl Range {
+    pub fn is_subrange(&self, other: Range) -> bool {
+        self.lower >= other.lower && self.upper <= other.upper
+    }
+
+    pub fn overlap(&self, other: Range) -> bool {
+        (self.lower >= other.lower && self.lower <= other.upper) || 
+            (self.upper <= other.upper && self.upper >= other.lower) ||
+            self.is_subrange(other) || other.is_subrange(*self)
+
+    }
+}
+
 // Example union input
 #[derive(Reformation, Eq, PartialEq, Debug)]
 #[allow(dead_code)]
