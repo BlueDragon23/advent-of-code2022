@@ -1,6 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, BufRead};
-
+use std::io::{BufRead, BufReader};
 
 use reformation::Reformation;
 
@@ -8,7 +7,7 @@ use reformation::Reformation;
 #[reformation(r"{opponent} {me}")]
 struct Input {
     opponent: Choice,
-    me: DesiredResult
+    me: DesiredResult,
 }
 
 #[derive(Reformation, Eq, PartialEq, Debug, Clone, Copy)]
@@ -18,7 +17,7 @@ enum Choice {
     #[reformation(r"B")]
     Paper,
     #[reformation(r"C")]
-    Scissors
+    Scissors,
 }
 
 #[derive(Reformation, Eq, PartialEq, Debug)]
@@ -28,7 +27,7 @@ enum MeInput {
     #[reformation(r"Y")]
     Paper,
     #[reformation(r"Z")]
-    Scissors
+    Scissors,
 }
 
 #[derive(Reformation, Eq, PartialEq, Debug, Clone, Copy)]
@@ -38,14 +37,13 @@ enum DesiredResult {
     #[reformation(r"Y")]
     Draw,
     #[reformation(r"Z")]
-    Win
+    Win,
 }
-
 
 enum GameResult {
     Win,
     Lose,
-    Draw
+    Draw,
 }
 
 fn main() {
@@ -53,9 +51,7 @@ fn main() {
     let reader = BufReader::new(f);
     let result = reader
         .lines()
-        .map(|line| {
-            Input::parse(&line.unwrap()).unwrap()
-        })
+        .map(|line| Input::parse(&line.unwrap()).unwrap())
         .map(|input| get_score(input))
         .sum::<i32>();
 
@@ -90,7 +86,6 @@ fn get_score(input: Input) -> i32 {
     };
     choice_score + result
 }
-
 
 fn get_choice(input: Input) -> Choice {
     match input.opponent {
