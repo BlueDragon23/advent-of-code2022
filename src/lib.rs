@@ -15,7 +15,7 @@ pub struct Coordinate {
 #[reformation("{lower}-{upper}")]
 pub struct Range {
     pub lower: i32,
-    pub upper: i32
+    pub upper: i32,
 }
 
 impl Range {
@@ -24,10 +24,10 @@ impl Range {
     }
 
     pub fn overlap(&self, other: Range) -> bool {
-        (self.lower >= other.lower && self.lower <= other.upper) || 
-            (self.upper <= other.upper && self.upper >= other.lower) ||
-            self.is_subrange(other) || other.is_subrange(*self)
-
+        (self.lower >= other.lower && self.lower <= other.upper)
+            || (self.upper <= other.upper && self.upper >= other.lower)
+            || self.is_subrange(other)
+            || other.is_subrange(*self)
     }
 }
 

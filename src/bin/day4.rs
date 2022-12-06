@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 
 use advent_of_code2022::Range;
 use reformation::Reformation;
@@ -8,7 +8,7 @@ use reformation::Reformation;
 #[reformation(r"{first},{second}")]
 struct Input {
     first: Range,
-    second: Range
+    second: Range,
 }
 
 fn main() {

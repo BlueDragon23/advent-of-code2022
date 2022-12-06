@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 
 use itertools::Itertools;
 use reformation::Reformation;
@@ -10,7 +10,7 @@ use reformation::Reformation;
 struct Command {
     count: u32,
     source: usize,
-    destination: usize
+    destination: usize,
 }
 
 fn main() {
@@ -52,12 +52,12 @@ fn get_initial_state() -> Vec<Vec<char>> {
         vec![], // dummy vec for 0 indexing
         vec!['D', 'L', 'V', 'T', 'M', 'H', 'F'],
         vec!['H', 'Q', 'G', 'J', 'C', 'T', 'N', 'P'],
-        vec!['R', 'S', 'D', 'M', 'P', 'H', ],
-        vec!['L', 'B', 'V', 'F', ],
-        vec!['N', 'H', 'G', 'L', 'Q',],
-        vec!['W', 'B', 'D', 'G', 'R', 'M', 'P', ],
-        vec!['G', 'M', 'N', 'R', 'C', 'H', 'L', 'Q', ],
-        vec!['C', 'L', 'W', ],
-        vec!['R', 'D', 'L', 'Q', 'J', 'Z', 'M', 'T', ]
+        vec!['R', 'S', 'D', 'M', 'P', 'H'],
+        vec!['L', 'B', 'V', 'F'],
+        vec!['N', 'H', 'G', 'L', 'Q'],
+        vec!['W', 'B', 'D', 'G', 'R', 'M', 'P'],
+        vec!['G', 'M', 'N', 'R', 'C', 'H', 'L', 'Q'],
+        vec!['C', 'L', 'W'],
+        vec!['R', 'D', 'L', 'Q', 'J', 'Z', 'M', 'T'],
     ]
 }
