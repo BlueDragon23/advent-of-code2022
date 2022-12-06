@@ -2,7 +2,6 @@ use std::fs::File;
 use std::io::{BufReader, BufRead};
 
 use advent_of_code2022::Range;
-use itertools::Itertools;
 use reformation::Reformation;
 
 #[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
