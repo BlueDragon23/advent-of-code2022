@@ -166,7 +166,7 @@ pub fn get_adjacent_points_diagonal(
 
 pub fn print_matrix(matrix: &Vec<Vec<u32>>) {
     for line in matrix {
-        println!("{}", line.into_iter().join(""));
+        println!("{}", line.iter().join(""));
     }
-    println!("");
+    println!();
 }

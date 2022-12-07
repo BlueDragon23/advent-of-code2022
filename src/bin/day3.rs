@@ -18,7 +18,7 @@ fn main() {
                 .next()
                 .unwrap()
                 .intersection(&chunk.next().unwrap())
-                .map(|&c| c)
+                .copied()
                 .collect::<HashSet<char>>()
                 .intersection(&chunk.next().unwrap())
                 .next()
@@ -35,6 +35,7 @@ fn main() {
     println!("Part 2: {:?}", result);
 }
 
+#[allow(dead_code)]
 fn part1() {
     let f = File::open("input/day3.txt").unwrap();
     let reader = BufReader::new(f);
@@ -60,4 +61,5 @@ fn part1() {
             _ => panic!("Invalid"),
         })
         .sum::<u32>();
+    println!("Part 1: {}", result);
 }

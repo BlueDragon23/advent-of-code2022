@@ -49,7 +49,7 @@ fn part_1(input: String) -> usize {
         .windows(4)
         .enumerate()
         .map_while(|(index, window)| {
-            let unique = window.into_iter().collect::<HashSet<_>>();
+            let unique = window.iter().collect::<HashSet<_>>();
             if unique.len() == 4 {
                 println!("index: {}", index);
                 None

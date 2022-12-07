@@ -49,11 +49,11 @@ enum GameResult {
 fn main() {
     let f = File::open("input/day2.txt").unwrap();
     let reader = BufReader::new(f);
-    let result = reader
+    let result: i32 = reader
         .lines()
         .map(|line| Input::parse(&line.unwrap()).unwrap())
-        .map(|input| get_score(input))
-        .sum::<i32>();
+        .map(get_score)
+        .sum();
 
     println!("Part: {:?}", result);
 }
