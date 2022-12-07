@@ -1,3 +1,4 @@
+use core::panic;
 use std::collections::HashMap;
 
 use itertools::Itertools;
@@ -6,13 +7,14 @@ use reformation::Reformation;
 #[derive(Debug, Clone)]
 struct Node<'a> {
     name: String,
-    contents: Element<'a>
+    contents: Element<'a>,
+    parent: &'a Option<Box<Node<'a>>>,
 }
 
 #[derive(Debug, Clone)]
 enum Element<'a> {
-    Directory(Vec<&'a Node<'a>>),
-    File(u64)
+    Directory(Vec<Box<Node<'a>>>),
+    File(u64),
 }
 
 #[derive(Debug, Reformation, Clone)]
@@ -25,76 +27,116 @@ enum Command {
     #[reformation(r"dir {}")]
     Dir(String),
     #[reformation(r"{} {}")]
-    File(u64, String)
+    File(u64, String),
 }
 
 #[derive(Debug, Clone)]
 struct State<'a> {
-    current_node: Option<Node<'a>>,
-    parent_node: Option<Node<'a>>,
-    root_node: Option<Node<'a>>
+    current_node: Option<Box<Node<'a>>>,
+    root_node: Option<Box<Node<'a>>>,
 }
 
 fn main() -> color_eyre::Result<()> {
-    let mut state = State { current_node: None, parent_node: None, root_node: None };
-    include_str!("../../input/day7.txt")
+    let commands = include_str!("../../input/day7.txt")
         .lines()
-        .batching(|it| {
-            match Command::parse(it.next().unwrap()).unwrap() {
-                Command::Cd(name) => {
-                    if name == ".." {
-                        Some(state.parent_node)
-                    } else if name == "/" {
-                        if let None = state.root_node {
-                            state.root_node = Some(Node {name: "/".to_string(), contents: Element::Directory(vec![])});
+        .map(|line| Command::parse(line).unwrap())
+        .collect_vec();
+
+    let mut index = 0;
+    let mut state = State {
+        current_node: None,
+        root_node: None,
+    };
+    while index < commands.len() {
+        match &commands[index] {
+            Command::Cd(path) => {
+                match path.as_str() {
+                    "/" => {
+                        if state.root_node.is_none() {
+                            state.root_node = Some(Box::new(Node {
+                                name: "/".to_owned(),
+                                contents: Element::Directory(vec![]),
+                                parent: &None,
+                            }));
+                        }
+                        state.current_node = state.root_node;
+                    }
+                    ".." => {
+                        state.current_node = *state.current_node.unwrap().parent;
+                    }
+                    _ => {
+                        state.current_node = match state.current_node.unwrap().contents {
+                            Element::Directory(children) => children
+                                .iter()
+                                .find(|child| &child.name == path)
+                                .map(|&x| x),
+                            Element::File(_) => panic!("Current node should never be a file"),
                         };
-                        Some(state.root_node)
-                    } else {
-                        state.parent_node = state.current_node;
-                        Some(Node {name, contents: Element::Directory(vec![])})
                     }
-                },
-                Command::Ls => {
-                    // no action
-                    Some()
-                },
-                Command::Dir(name) => {
-                    state.tree.insert(name.clone(), Node {name, contents: Element::Directory(vec![], 0)});
-                },
-                Command::File(size, name) => {
-                    let child = Node {name: name.clone(), contents: Element::File(size)};
-                    state.tree.insert(name.clone(), child.clone());
-                    let n = state.tree.get_mut(&state.current_node.name).unwrap();
-                    if let Element::Directory(mut children, _) = n.contents {
-                        children.push(child);
-                    }
-                },
+                };
+                index += 1;
             }
-        });
+            Command::Ls => {
+                let (new_index, nodes) =
+                    read_directory(&commands, index, &state.current_node);
+                index = new_index;
+                state.current_node.unwrap().contents = Element::Directory(nodes);
+            }
+            _ => panic!("Unexpected command"),
+        };
+    }
 
     // dbg!(&state.tree);
-    let first_node = state.tree.get("/").unwrap().clone();
+    let first_node = state.root_node.unwrap();
     let sizes = find_node_size(&first_node);
 
-    let result: u64 = sizes.iter().filter(|(_, &size)| size < 100000).map(|(_, size)| size).sum();
+    let result: u64 = sizes
+        .iter()
+        .filter(|(_, &size)| size < 100000)
+        .map(|(_, size)| size)
+        .sum();
     dbg!(result);
 
     Ok(())
 }
 
+fn read_directory<'a>(
+    commands: &[Command],
+    index: usize,
+    parent: &'a Option<Box<Node<'a>>>,
+) -> (usize, Vec<Box<Node<'a>>>) {
+    let mut current_index = index + 1;
+    let mut nodes = vec![];
+    loop {
+        match commands.get(current_index) {
+            Some(Command::Dir(name)) => nodes.push(Box::new(Node {
+                name: (*name.clone()).to_string(),
+                contents: Element::Directory(vec![]),
+                parent: parent,
+            })),
+            Some(Command::File(size, name)) => nodes.push(Box::new(Node {
+                name: (*name.clone()).to_string(),
+                contents: Element::File(*size),
+                parent: parent,
+            })),
+            _ => return (current_index, nodes),
+        }
+        current_index += 1
+    }
+}
+
 fn find_node_size(node: &Node) -> HashMap<String, u64> {
     match &node.contents {
-        Element::Directory(children, _) => {
-            let mut sizes: HashMap<String, u64> = children
+        Element::Directory(children) => {
+            let mut sizes: HashMap<String, u64> =
+                children.into_iter().flat_map(|child| find_node_size(child)).collect();
+            let dir_size = children
                 .iter()
-                .flat_map(find_node_size)
-                .collect();
-            let dir_size = children.iter().map(|child| sizes.get(&child.name).unwrap()).sum();
+                .map(|child| sizes.get(&child.name).unwrap())
+                .sum();
             sizes.insert(node.name.clone(), dir_size);
             sizes
-        },
-        Element::File(size) => {
-            HashMap::from([(node.name.clone(), *size)])
-        },
+        }
+        Element::File(size) => HashMap::from([(node.name.clone(), *size)]),
     }
 }
