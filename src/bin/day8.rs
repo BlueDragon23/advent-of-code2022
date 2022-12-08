@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use advent_of_code2022::Coordinate;
 use itertools::Itertools;
 
@@ -6,25 +8,25 @@ fn main() -> color_eyre::Result<()> {
         .lines()
         .map(|line| line.chars().map(|c| c.to_digit(10).unwrap()).collect_vec())
         .collect_vec();
-    let mut count = 0;
-    for row in 0..heights.len() {
-        for col in 0..heights[0].len() {
+
+    let count = (0..heights.len())
+        .cartesian_product(0..heights[0].len())
+        .fold(0, |count, (row, col)| {
             let coordinate = Coordinate { row, col };
             if is_visible(&heights, coordinate) {
-                // dbg!(coordinate);
-                count += 1;
+                return count + 1;
             }
-        }
-    }
+            count
+        });
 
-    let mut results = vec![];
-    for row in 0..heights.len() {
-        for col in 0..heights[0].len() {
+    let best_score = (0..heights.len())
+        .cartesian_product(0..heights[0].len())
+        .map(|(row, col)| {
             let coordinate = Coordinate { row, col };
-            results.push(get_scenic_score(&heights, coordinate));
-        }
-    }
-    let best_score = results.iter().max().unwrap();
+            get_scenic_score(&heights, coordinate)
+        })
+        .max()
+        .unwrap();
 
     dbg!(count);
     dbg!(best_score);
@@ -34,37 +36,41 @@ fn main() -> color_eyre::Result<()> {
 fn is_visible(heights: &Vec<Vec<u32>>, coord: Coordinate) -> bool {
     // search row and column for higher things
     let tree_height = heights[coord.row][coord.col];
-    let mut visible = false;
-    // check column
-    visible |= (0..coord.row).all(|row| heights[row][coord.col] < tree_height);
-    visible |= ((coord.row + 1)..heights.len()).all(|row| heights[row][coord.col] < tree_height);
-    visible |= (0..coord.col).all(|col| heights[coord.row][col] < tree_height);
-    visible |= ((coord.col + 1)..heights[0].len()).all(|col| heights[coord.row][col] < tree_height);
-    visible
+    vec![
+        (0..coord.row).all(|row| heights[row][coord.col] < tree_height),
+        ((coord.row + 1)..heights.len()).all(|row| heights[row][coord.col] < tree_height),
+        (0..coord.col).all(|col| heights[coord.row][col] < tree_height),
+        ((coord.col + 1)..heights[0].len()).all(|col| heights[coord.row][col] < tree_height),
+    ]
+    .iter()
+    .any(|&b| b)
 }
 
 fn get_scenic_score(heights: &Vec<Vec<u32>>, coord: Coordinate) -> u64 {
     let tree_height = heights[coord.row][coord.col];
     let mut score: u64 = 1;
-    let binding = (0..coord.row).rev().collect_vec();
-    score *= binding
-        .split_inclusive(|&row| heights[row][coord.col] >= tree_height)
-        .next()
-        .map_or(0, |slice| slice.len()) as u64;
-    let binding = ((coord.row + 1)..heights.len()).collect_vec();
-    score *= binding
-        .split_inclusive(|&row| heights[row][coord.col] >= tree_height)
-        .next()
-        .map_or(0, |slice| slice.len()) as u64;
-    let binding = (0..coord.col).rev().collect_vec();
-    score *= binding
-        .split_inclusive(|&col| heights[coord.row][col] >= tree_height)
-        .next()
-        .map_or(0, |slice| slice.len()) as u64;
-    let binding = ((coord.col + 1)..heights[0].len()).collect_vec();
-    score *= binding
-        .split_inclusive(|&col| heights[coord.row][col] >= tree_height)
-        .next()
-        .map_or(0, |slice| slice.len()) as u64;
+    score *= get_direction_scenic_score(&(0..coord.row).rev().collect_vec(), |&row| {
+        heights[row][coord.col] >= tree_height
+    });
+    score *= get_direction_scenic_score(&((coord.row + 1)..heights.len()).collect_vec(), |&row| {
+        heights[row][coord.col] >= tree_height
+    });
+    score *= get_direction_scenic_score(&(0..coord.col).rev().collect_vec(), |&col| {
+        heights[coord.row][col] >= tree_height
+    });
+    score *=
+        get_direction_scenic_score(&((coord.col + 1)..heights[0].len()).collect_vec(), |&col| {
+            heights[coord.row][col] >= tree_height
+        });
     score
+}
+
+fn get_direction_scenic_score<F>(range: &[usize], predicate: F) -> u64
+where
+    F: FnMut(&usize) -> bool,
+{
+    range
+        .split_inclusive(predicate)
+        .next()
+        .map_or(0, |slice| slice.len()) as u64
 }
