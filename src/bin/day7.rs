@@ -77,8 +77,7 @@ fn main() -> color_eyre::Result<()> {
                 index += 1;
             }
             Command::Ls => {
-                let (new_index, nodes) =
-                    read_directory(&commands, index, &state.current_node);
+                let (new_index, nodes) = read_directory(&commands, index, &state.current_node);
                 index = new_index;
                 state.current_node.unwrap().contents = Element::Directory(nodes);
             }
@@ -128,8 +127,10 @@ fn read_directory<'a>(
 fn find_node_size(node: &Node) -> HashMap<String, u64> {
     match &node.contents {
         Element::Directory(children) => {
-            let mut sizes: HashMap<String, u64> =
-                children.into_iter().flat_map(|child| find_node_size(child)).collect();
+            let mut sizes: HashMap<String, u64> = children
+                .into_iter()
+                .flat_map(|child| find_node_size(child))
+                .collect();
             let dir_size = children
                 .iter()
                 .map(|child| sizes.get(&child.name).unwrap())
