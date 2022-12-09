@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use advent_of_code2022::Coordinate;
 use itertools::Itertools;
 

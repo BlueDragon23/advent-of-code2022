@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::{BufRead, Lines};
@@ -7,8 +8,8 @@ use reformation::Reformation;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Coordinate {
-    pub row: usize,
-    pub col: usize,
+    pub row: i32,
+    pub col: i32,
 }
 
 #[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -100,29 +101,31 @@ pub fn parse_lines_to_nums(lines: Lines<BufReader<File>>) -> Vec<i32> {
 
 pub fn get_adjacent_points(
     coordinate: Coordinate,
-    row_count: usize,
-    col_count: usize,
+    min_row: i32,
+    min_col: i32,
+    max_row: i32,
+    max_col: i32,
 ) -> Vec<Coordinate> {
     let mut adj = vec![];
-    if coordinate.row != 0 {
+    if coordinate.row != min_row {
         adj.push(Coordinate {
             row: coordinate.row - 1,
             col: coordinate.col,
         });
     }
-    if coordinate.row != row_count - 1 {
+    if coordinate.row != max_row - 1 {
         adj.push(Coordinate {
             row: coordinate.row + 1,
             col: coordinate.col,
         });
     }
-    if coordinate.col != 0 {
+    if coordinate.col != min_col {
         adj.push(Coordinate {
             row: coordinate.row,
             col: coordinate.col - 1,
         });
     }
-    if coordinate.col != col_count - 1 {
+    if coordinate.col != max_col - 1 {
         adj.push(Coordinate {
             row: coordinate.row,
             col: coordinate.col + 1,
@@ -133,29 +136,31 @@ pub fn get_adjacent_points(
 
 pub fn get_adjacent_points_diagonal(
     coordinate: Coordinate,
-    row_count: usize,
-    col_count: usize,
+    min_row: i32,
+    min_col: i32,
+    max_row: i32,
+    max_col: i32,
 ) -> Vec<Coordinate> {
-    let mut adj = get_adjacent_points(coordinate, row_count, col_count);
-    if coordinate.row != 0 && coordinate.col != 0 {
+    let mut adj = get_adjacent_points(coordinate, min_row, min_col, max_row, max_col);
+    if coordinate.row != min_row && coordinate.col != min_col {
         adj.push(Coordinate {
             row: coordinate.row - 1,
             col: coordinate.col - 1,
         });
     }
-    if coordinate.row != row_count - 1 && coordinate.col != col_count - 1 {
+    if coordinate.row != max_row - 1 && coordinate.col != max_col - 1 {
         adj.push(Coordinate {
             row: coordinate.row + 1,
             col: coordinate.col + 1,
         });
     }
-    if coordinate.col != 0 && coordinate.row != row_count - 1 {
+    if coordinate.col != min_col && coordinate.row != max_row - 1 {
         adj.push(Coordinate {
             row: coordinate.row + 1,
             col: coordinate.col - 1,
         });
     }
-    if coordinate.col != col_count - 1 && coordinate.row != 0 {
+    if coordinate.col != max_col - 1 && coordinate.row != min_row {
         adj.push(Coordinate {
             row: coordinate.row - 1,
             col: coordinate.col + 1,
@@ -167,6 +172,25 @@ pub fn get_adjacent_points_diagonal(
 pub fn print_matrix(matrix: &Vec<Vec<u32>>) {
     for line in matrix {
         println!("{}", line.iter().join(""));
+    }
+    println!();
+}
+
+pub fn print_coordinates(matrix: &HashSet<Coordinate>) {
+    let min_row = matrix.iter().map(|c| c.row).min().unwrap();
+    let max_row = matrix.iter().map(|c| c.row).max().unwrap();
+    let min_col = matrix.iter().map(|c| c.col).min().unwrap();
+    let max_col = matrix.iter().map(|c| c.col).max().unwrap();
+    for row in (min_row..=max_row).rev() {
+        for col in min_col..=max_col {
+            let c = Coordinate { row, col };
+            if matrix.contains(&c) {
+                print!("#");
+            } else {
+                print!(".");
+            }
+        }
+        println!();
     }
     println!();
 }
