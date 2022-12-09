@@ -12,6 +12,12 @@ pub struct Coordinate {
     pub col: i32,
 }
 
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct PositiveCoordinate {
+    pub row: usize,
+    pub col: usize,
+}
+
 #[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[reformation("{lower}-{upper}")]
 pub struct Range {

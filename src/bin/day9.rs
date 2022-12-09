@@ -102,7 +102,9 @@ fn solve_part1(input: &str) -> usize {
 }
 
 fn resolve_tail_position(head_position: Coordinate, tail_position: Coordinate) -> Coordinate {
-    if get_adjacent_points_diagonal(head_position, i32::MIN, i32::MIN, i32::MAX, i32::MAX).contains(&tail_position) {
+    if get_adjacent_points_diagonal(head_position, i32::MIN, i32::MIN, i32::MAX, i32::MAX)
+        .contains(&tail_position)
+    {
         tail_position
     } else {
         // column is different
@@ -141,19 +143,8 @@ fn solve_part2(input: &str) -> usize {
                                 col: state.head_position.col + 1,
                                 ..state.head_position
                             };
-                            state.knot_positions = state
-                                .knot_positions
-                                .iter()
-                                .fold(
-                                    (state.head_position, vec![]),
-                                    |(position, mut result), &next_knot| {
-                                        let next_position =
-                                            resolve_tail_position(position, next_knot);
-                                        result.push(next_position);
-                                        (next_position, result)
-                                    },
-                                )
-                                .1;
+                            state.knot_positions =
+                                update_knot_positions(state.head_position, &state.knot_positions);
                             validate_state(&state.knot_positions);
                             state.visited.insert(*state.knot_positions.last().unwrap());
                         }
@@ -164,19 +155,8 @@ fn solve_part2(input: &str) -> usize {
                                 row: state.head_position.row - 1,
                                 ..state.head_position
                             };
-                            state.knot_positions = state
-                                .knot_positions
-                                .iter()
-                                .fold(
-                                    (state.head_position, vec![]),
-                                    |(position, mut result), &next_knot| {
-                                        let next_position =
-                                            resolve_tail_position(position, next_knot);
-                                        result.push(next_position);
-                                        (next_position, result)
-                                    },
-                                )
-                                .1;
+                            state.knot_positions =
+                                update_knot_positions(state.head_position, &state.knot_positions);
                             validate_state(&state.knot_positions);
                             state.visited.insert(*state.knot_positions.last().unwrap());
                         }
@@ -187,19 +167,8 @@ fn solve_part2(input: &str) -> usize {
                                 row: state.head_position.row + 1,
                                 ..state.head_position
                             };
-                            state.knot_positions = state
-                                .knot_positions
-                                .iter()
-                                .fold(
-                                    (state.head_position, vec![]),
-                                    |(position, mut result), &next_knot| {
-                                        let next_position =
-                                            resolve_tail_position(position, next_knot);
-                                        result.push(next_position);
-                                        (next_position, result)
-                                    },
-                                )
-                                .1;
+                            state.knot_positions =
+                                update_knot_positions(state.head_position, &state.knot_positions);
                             validate_state(&state.knot_positions);
                             state.visited.insert(*state.knot_positions.last().unwrap());
                         }
@@ -210,19 +179,8 @@ fn solve_part2(input: &str) -> usize {
                                 col: state.head_position.col - 1,
                                 ..state.head_position
                             };
-                            state.knot_positions = state
-                                .knot_positions
-                                .iter()
-                                .fold(
-                                    (state.head_position, vec![]),
-                                    |(position, mut result), &next_knot| {
-                                        let next_position =
-                                            resolve_tail_position(position, next_knot);
-                                        result.push(next_position);
-                                        (next_position, result)
-                                    },
-                                )
-                                .1;
+                            state.knot_positions =
+                                update_knot_positions(state.head_position, &state.knot_positions);
                             validate_state(&state.knot_positions);
                             state.visited.insert(*state.knot_positions.last().unwrap());
                         }
@@ -236,23 +194,44 @@ fn solve_part2(input: &str) -> usize {
     state.visited.len()
 }
 
+fn update_knot_positions(
+    head_position: Coordinate,
+    current_positions: &Vec<Coordinate>,
+) -> Vec<Coordinate> {
+    current_positions
+        .iter()
+        .fold(
+            (head_position, vec![]),
+            |(position, mut result), &next_knot| {
+                let next_position = resolve_tail_position(position, next_knot);
+                result.push(next_position);
+                (next_position, result)
+            },
+        )
+        .1
+}
+
 fn validate_state(knot_positions: &Vec<Coordinate>) {
     if !(knot_positions
         .iter()
         .take(knot_positions.len() - 1)
         .zip(knot_positions.iter().skip(1))
-        .all(|(a, b)|{ 
-            if a == b || get_adjacent_points_diagonal(*a, i32::MIN, i32::MIN, i32::MAX, i32::MAX).contains(b) {
+        .all(|(a, b)| {
+            if a == b
+                || get_adjacent_points_diagonal(*a, i32::MIN, i32::MIN, i32::MAX, i32::MAX)
+                    .contains(b)
+            {
                 true
             } else {
                 dbg!(a, b);
                 false
             }
-        })) {
-            dbg!(knot_positions);
-            panic!("Found invalid positions");
-            // print_coordinates(&knot_positions.clone().into_iter().collect());
-        }
+        }))
+    {
+        dbg!(knot_positions);
+        panic!("Found invalid positions");
+        // print_coordinates(&knot_positions.clone().into_iter().collect());
+    }
 }
 
 #[cfg(test)]
