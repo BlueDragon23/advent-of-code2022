@@ -74,16 +74,19 @@ fn solve_part2(input: &Vec<Instruction>) -> Vec<Coordinate> {
             |mut state, instruction| {
                 match instruction {
                     Instruction::Add(count) => {
-                        draw_pixel(state.cycle, state.register).map(|coord| state.results.push(coord));
+                        draw_pixel(state.cycle, state.register)
+                            .map(|coord| state.results.push(coord));
                         state.cycle += 1;
-                        draw_pixel(state.cycle, state.register).map(|coord| state.results.push(coord));
+                        draw_pixel(state.cycle, state.register)
+                            .map(|coord| state.results.push(coord));
                         state.cycle += 1;
                         state.register += count;
-                    },
+                    }
                     Instruction::Noop => {
-                        draw_pixel(state.cycle, state.register).map(|coord| state.results.push(coord));
+                        draw_pixel(state.cycle, state.register)
+                            .map(|coord| state.results.push(coord));
                         state.cycle += 1;
-                    },
+                    }
                 };
                 state
             },
@@ -97,7 +100,7 @@ fn draw_pixel(cycle: i32, register: i32) -> Option<Coordinate> {
 
     let active = vec![register - 1, register, register + 1];
     if active.contains(&col) {
-        Some(Coordinate { row, col})
+        Some(Coordinate { row, col })
     } else {
         None
     }

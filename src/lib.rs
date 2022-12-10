@@ -187,7 +187,7 @@ pub fn print_coordinates(matrix: &[Coordinate], origin_top_left: bool) {
     let max_row = matrix.iter().map(|c| c.row).max().unwrap();
     let min_col = matrix.iter().map(|c| c.col).min().unwrap();
     let max_col = matrix.iter().map(|c| c.col).max().unwrap();
-    let row_iter  = if origin_top_left {
+    let row_iter = if origin_top_left {
         (min_row..=max_row).collect_vec()
     } else {
         (min_row..=max_row).rev().collect_vec()
