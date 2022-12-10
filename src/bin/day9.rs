@@ -1,7 +1,6 @@
-use std::{collections::HashSet, iter, thread::panicking};
+use std::collections::HashSet;
 
-use advent_of_code2022::{get_adjacent_points_diagonal, print_coordinates, Coordinate};
-use itertools::Itertools;
+use advent_of_code2022::{get_adjacent_points_diagonal, Coordinate};
 use reformation::Reformation;
 
 #[derive(Reformation, Debug, Clone, Copy)]

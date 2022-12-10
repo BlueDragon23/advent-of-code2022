@@ -182,12 +182,17 @@ pub fn print_matrix(matrix: &Vec<Vec<u32>>) {
     println!();
 }
 
-pub fn print_coordinates(matrix: &HashSet<Coordinate>) {
+pub fn print_coordinates(matrix: &[Coordinate], origin_top_left: bool) {
     let min_row = matrix.iter().map(|c| c.row).min().unwrap();
     let max_row = matrix.iter().map(|c| c.row).max().unwrap();
     let min_col = matrix.iter().map(|c| c.col).min().unwrap();
     let max_col = matrix.iter().map(|c| c.col).max().unwrap();
-    for row in (min_row..=max_row).rev() {
+    let row_iter  = if origin_top_left {
+        (min_row..=max_row).collect_vec()
+    } else {
+        (min_row..=max_row).rev().collect_vec()
+    };
+    for row in row_iter {
         for col in min_col..=max_col {
             let c = Coordinate { row, col };
             if matrix.contains(&c) {
