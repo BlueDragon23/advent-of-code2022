@@ -27,7 +27,7 @@ fn parse_input(input: &str) -> Vec<Instruction> {
         .collect_vec()
 }
 
-fn solve_part1(input: &Vec<Instruction>) -> i32 {
+fn solve_part1(input: &[Instruction]) -> i32 {
     let mut cycle = 1;
     let mut register = 1;
     let mut result = 0;
@@ -62,7 +62,7 @@ struct State {
     register: i32,
 }
 
-fn solve_part2(input: &Vec<Instruction>) -> Vec<Coordinate> {
+fn solve_part2(input: &[Instruction]) -> Vec<Coordinate> {
     input
         .iter()
         .fold(
@@ -74,17 +74,20 @@ fn solve_part2(input: &Vec<Instruction>) -> Vec<Coordinate> {
             |mut state, instruction| {
                 match instruction {
                     Instruction::Add(count) => {
-                        draw_pixel(state.cycle, state.register)
-                            .map(|coord| state.results.push(coord));
+                        if let Some(coord) = draw_pixel(state.cycle, state.register) {
+                            state.results.push(coord);
+                        }
                         state.cycle += 1;
-                        draw_pixel(state.cycle, state.register)
-                            .map(|coord| state.results.push(coord));
+                        if let Some(coord) = draw_pixel(state.cycle, state.register) {
+                            state.results.push(coord);
+                        }
                         state.cycle += 1;
                         state.register += count;
                     }
                     Instruction::Noop => {
-                        draw_pixel(state.cycle, state.register)
-                            .map(|coord| state.results.push(coord));
+                        if let Some(coord) = draw_pixel(state.cycle, state.register) {
+                            state.results.push(coord);
+                        }
                         state.cycle += 1;
                     }
                 };
