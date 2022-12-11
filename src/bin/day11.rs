@@ -1,5 +1,6 @@
 use std::collections::{HashMap, VecDeque};
 
+use color_eyre::eyre::ContextCompat;
 use itertools::Itertools;
 use reformation::Reformation;
 
@@ -38,53 +39,33 @@ enum Operator {
 
 fn main() -> color_eyre::Result<()> {
     let input = include_str!("../../input/day11.txt");
-    let input_processed = parse_input(input);
+    let input_processed = parse_input(input)?;
     println!("Part 1: {}", solve_part1(&input_processed));
     println!("Part 2: {}", solve_part2(&input_processed));
     Ok(())
 }
 
-fn parse_input(input: &str) -> Vec<Monkey> {
+fn parse_input(input: &str) -> color_eyre::Result<Vec<Monkey>> {
     input
         .split("\n\n")
         .map(|group| {
             // skip the number
             let mut lines = group.lines().skip(1);
-            let items = parse_items(lines.next().unwrap());
-            let operation = Operation::parse(lines.next().unwrap()).unwrap();
-            let test = lines
-                .next()
-                .unwrap()
-                .split(" ")
-                .last()
-                .unwrap()
-                .parse::<u128>()
-                .unwrap();
-            let target_true = lines
-                .next()
-                .unwrap()
-                .chars()
-                .last()
-                .unwrap()
-                .to_digit(10)
-                .unwrap() as usize;
-            let target_false = lines
-                .next()
-                .unwrap()
-                .chars()
-                .last()
-                .unwrap()
-                .to_digit(10)
-                .unwrap() as usize;
-            Monkey {
+            let items = parse_items(lines.next()?);
+            let operation = Operation::parse(lines.next()?).unwrap();
+            let test = lines.next()?.split(" ").last()?.parse::<u128>().unwrap();
+            let target_true = lines.next()?.chars().last()?.to_digit(10)? as usize;
+            let target_false = lines.next()?.chars().last()?.to_digit(10)? as usize;
+            Some(Monkey {
                 items,
                 operation,
                 test,
                 target_true,
                 target_false,
-            }
+            })
         })
-        .collect_vec()
+        .map(|result| result.wrap_err("Failed parsing"))
+        .collect()
 }
 
 fn parse_items(line: &str) -> VecDeque<u128> {
@@ -199,7 +180,6 @@ fn reduce_worry(worry: u128) -> u128 {
 fn solve_part2(input: &Vec<Monkey>) -> u128 {
     let mut monkeys = input.clone();
     let gcd = gcd(&monkeys);
-    dbg!(gcd);
     let num_rounds = 10000;
     let mut inspection_count = vec![0; monkeys.len()];
     for _ in 0..num_rounds {
@@ -228,7 +208,7 @@ mod tests {
     #[test]
     fn test_part1() {
         let input = include_str!("../../input/day11.test.txt");
-        let input_processed = parse_input(input);
+        let input_processed = parse_input(input).unwrap();
         let result = solve_part1(&input_processed);
         dbg!(&result);
         assert!(result == 10605);
@@ -237,7 +217,7 @@ mod tests {
     #[test]
     fn test_part2() {
         let input = include_str!("../../input/day11.test.txt");
-        let input_processed = parse_input(input);
+        let input_processed = parse_input(input).unwrap();
         let result = solve_part2(&input_processed);
         dbg!(&result);
         assert!(result == 2713310158);
