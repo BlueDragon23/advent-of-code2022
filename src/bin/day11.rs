@@ -8,19 +8,19 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn parse_input(input: &str) -> Vec<str> {
+fn parse_input(input: &str) -> Vec<u32> {
     input
         .lines()
         .collect_vec()
 }
 
-fn solve_part1(input: &str) -> bool {
+fn solve_part1(input: &Vec<str>) -> bool {
     input
         .lines();
     true
 }
 
-fn solve_part2(input: &str) -> bool {
+fn solve_part2(input: &Vec<str>) -> bool {
     input
         .lines();
     true
