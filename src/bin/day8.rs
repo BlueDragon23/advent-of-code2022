@@ -1,4 +1,4 @@
-use advent_of_code2022::PositiveCoordinate;
+use advent_of_code2022::Coordinate;
 use itertools::Itertools;
 
 fn main() -> color_eyre::Result<()> {
@@ -10,7 +10,7 @@ fn main() -> color_eyre::Result<()> {
     let count = (0..heights.len())
         .cartesian_product(0..heights[0].len())
         .fold(0, |count, (row, col)| {
-            let coordinate = PositiveCoordinate { row, col };
+            let coordinate = Coordinate { row, col };
             if is_visible(&heights, coordinate) {
                 return count + 1;
             }
@@ -20,7 +20,7 @@ fn main() -> color_eyre::Result<()> {
     let best_score = (0..heights.len())
         .cartesian_product(0..heights[0].len())
         .map(|(row, col)| {
-            let coordinate = PositiveCoordinate { row, col };
+            let coordinate = Coordinate { row, col };
             get_scenic_score(&heights, coordinate)
         })
         .max()
@@ -31,7 +31,7 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn is_visible(heights: &Vec<Vec<u32>>, coord: PositiveCoordinate) -> bool {
+fn is_visible(heights: &Vec<Vec<u32>>, coord: Coordinate<usize>) -> bool {
     // search row and column for higher things
     let tree_height = heights[coord.row][coord.col];
     vec![
@@ -44,7 +44,7 @@ fn is_visible(heights: &Vec<Vec<u32>>, coord: PositiveCoordinate) -> bool {
     .any(|&b| b)
 }
 
-fn get_scenic_score(heights: &Vec<Vec<u32>>, coord: PositiveCoordinate) -> u64 {
+fn get_scenic_score(heights: &Vec<Vec<u32>>, coord: Coordinate<usize>) -> u64 {
     let tree_height = heights[coord.row][coord.col];
     let mut score: u64 = 1;
     score *= get_direction_scenic_score(&(0..coord.row).rev().collect_vec(), |&row| {

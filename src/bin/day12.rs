@@ -42,14 +42,8 @@ fn main() -> color_eyre::Result<()> {
 }
 
 fn parse_input(input: &str) -> color_eyre::Result<Input> {
-    let mut start = Coordinate {
-        row: num::zero(),
-        col: num::zero(),
-    };
-    let mut end = Coordinate {
-        row: num::zero(),
-        col: num::zero(),
-    };
+    let mut start = Coordinate::default();
+    let mut end = Coordinate::default();
     let grid = input
         .lines()
         .enumerate()
@@ -87,17 +81,13 @@ fn find_shortest_path(
     let mut best_route: HashMap<Coordinate<usize>, Node> = HashMap::new();
     best_route.insert(start, Node { c: start, cost: 0 });
     let mut unvisited = vec![Node { c: start, cost: 0 }];
+    
     while let Some(index) = unvisited.iter().position_min() {
         let current = unvisited.remove(index);
         best_route.insert(current.c, current);
-        get_adjacent_points(current.c, 0, 0, height, width)
+        get_adjacent_points(current.c, height, width)
             .iter()
-            .filter(|point| {
-                valid_move(
-                    grid[current.c.row][current.c.col],
-                    grid[point.row][point.col],
-                )
-            })
+            .filter(|point| valid_move(current.c.get(grid), point.get(grid)))
             .for_each(|&point| {
                 if !best_route.contains_key(&point) {
                     let node = Node {

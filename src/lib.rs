@@ -12,6 +12,21 @@ pub struct Coordinate<T: PrimInt> {
     pub col: T,
 }
 
+impl<T: PrimInt> Default for Coordinate<T> {
+    fn default() -> Self {
+        Coordinate {
+            row: T::zero(),
+            col: T::zero(),
+        }
+    }
+}
+
+impl Coordinate<usize> {
+    pub fn get<V: Copy>(&self, matrix: &Vec<Vec<V>>) -> V {
+        matrix[self.row][self.col]
+    }
+}
+
 #[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 #[reformation("{lower}-{upper}")]
 pub struct Range {
@@ -101,12 +116,12 @@ pub fn parse_lines_to_nums(lines: Lines<BufReader<File>>) -> Vec<i32> {
 
 pub fn get_adjacent_points<T: PrimInt>(
     coordinate: Coordinate<T>,
-    min_row: T,
-    min_col: T,
     max_row: T,
     max_col: T,
 ) -> Vec<Coordinate<T>> {
     let mut adj = vec![];
+    let min_row = T::min_value();
+    let min_col = T::min_value();
     let one = T::one();
     if coordinate.row != min_row {
         adj.push(Coordinate {
@@ -137,12 +152,12 @@ pub fn get_adjacent_points<T: PrimInt>(
 
 pub fn get_adjacent_points_diagonal<T: PrimInt>(
     coordinate: Coordinate<T>,
-    min_row: T,
-    min_col: T,
     max_row: T,
     max_col: T,
 ) -> Vec<Coordinate<T>> {
-    let mut adj = get_adjacent_points(coordinate, min_row, min_col, max_row, max_col);
+    let mut adj = get_adjacent_points(coordinate, max_row, max_col);
+    let min_row = T::min_value();
+    let min_col = T::min_value();
     let one = T::one();
     if coordinate.row != min_row && coordinate.col != min_col {
         adj.push(Coordinate {

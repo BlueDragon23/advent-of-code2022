@@ -104,9 +104,7 @@ fn resolve_tail_position(
     head_position: Coordinate<i32>,
     tail_position: Coordinate<i32>,
 ) -> Coordinate<i32> {
-    if get_adjacent_points_diagonal(head_position, i32::MIN, i32::MIN, i32::MAX, i32::MAX)
-        .contains(&tail_position)
-    {
+    if get_adjacent_points_diagonal(head_position, i32::MAX, i32::MAX).contains(&tail_position) {
         tail_position
     } else {
         // column is different
@@ -219,10 +217,7 @@ fn validate_state(knot_positions: &Vec<Coordinate<i32>>) {
         .take(knot_positions.len() - 1)
         .zip(knot_positions.iter().skip(1))
         .all(|(a, b)| {
-            if a == b
-                || get_adjacent_points_diagonal(*a, i32::MIN, i32::MIN, i32::MAX, i32::MAX)
-                    .contains(b)
-            {
+            if a == b || get_adjacent_points_diagonal(*a, i32::MAX, i32::MAX).contains(b) {
                 true
             } else {
                 dbg!(a, b);
