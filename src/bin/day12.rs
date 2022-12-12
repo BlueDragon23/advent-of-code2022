@@ -5,7 +5,7 @@ struct Input {
 }
 
 fn main() -> color_eyre::Result<()> {
-    let input = include_str!("../../input/example.txt");
+    let input = include_str!("../../input/day12.txt");
     let input_processed = parse_input(input)?;
     println!("Part 1: {}", solve_part1(&input_processed));
     println!("Part 2: {}", solve_part2(&input_processed));
@@ -33,7 +33,7 @@ mod tests {
 
     #[test]
     fn test_part1() {
-        let input = include_str!("../../input/example.test.txt");
+        let input = include_str!("../../input/day12.test.txt");
         let input_processed = parse_input(input).unwrap();
         let result = solve_part1(&input_processed);
         assert!(result == 1);
@@ -41,7 +41,7 @@ mod tests {
 
     #[test]
     fn test_part2() {
-        let input = include_str!("../../input/example.test.txt");
+        let input = include_str!("../../input/day12.test.txt");
         let input_processed = parse_input(input).unwrap();
         let result = solve_part2(&input_processed);
         assert!(result == 1);
