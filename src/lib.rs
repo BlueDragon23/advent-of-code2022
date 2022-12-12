@@ -3,18 +3,13 @@ use std::io::BufReader;
 use std::io::{BufRead, Lines};
 
 use itertools::Itertools;
+use num::{range_inclusive, PrimInt};
 use reformation::Reformation;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct Coordinate {
-    pub row: i32,
-    pub col: i32,
-}
-
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct PositiveCoordinate {
-    pub row: usize,
-    pub col: usize,
+pub struct Coordinate<T: PrimInt> {
+    pub row: T,
+    pub col: T,
 }
 
 #[derive(Reformation, Clone, Copy, Debug, Hash, PartialEq, Eq)]
@@ -104,106 +99,73 @@ pub fn parse_lines_to_nums(lines: Lines<BufReader<File>>) -> Vec<i32> {
 //         .collect_vec()
 // }
 
-pub fn get_adjacent_positive_points(
-    coordinate: PositiveCoordinate,
-    min_row: usize,
-    min_col: usize,
-    max_row: usize,
-    max_col: usize,
-) -> Vec<PositiveCoordinate> {
+pub fn get_adjacent_points<T: PrimInt>(
+    coordinate: Coordinate<T>,
+    min_row: T,
+    min_col: T,
+    max_row: T,
+    max_col: T,
+) -> Vec<Coordinate<T>> {
     let mut adj = vec![];
-    if coordinate.row != min_row {
-        adj.push(PositiveCoordinate {
-            row: coordinate.row - 1,
-            col: coordinate.col,
-        });
-    }
-    if coordinate.row != max_row - 1 {
-        adj.push(PositiveCoordinate {
-            row: coordinate.row + 1,
-            col: coordinate.col,
-        });
-    }
-    if coordinate.col != min_col {
-        adj.push(PositiveCoordinate {
-            row: coordinate.row,
-            col: coordinate.col - 1,
-        });
-    }
-    if coordinate.col != max_col - 1 {
-        adj.push(PositiveCoordinate {
-            row: coordinate.row,
-            col: coordinate.col + 1,
-        });
-    }
-    adj
-}
-
-pub fn get_adjacent_points(
-    coordinate: Coordinate,
-    min_row: i32,
-    min_col: i32,
-    max_row: i32,
-    max_col: i32,
-) -> Vec<Coordinate> {
-    let mut adj = vec![];
+    let one = T::one();
     if coordinate.row != min_row {
         adj.push(Coordinate {
-            row: coordinate.row - 1,
+            row: coordinate.row - one,
             col: coordinate.col,
         });
     }
-    if coordinate.row != max_row - 1 {
+    if coordinate.row != max_row - one {
         adj.push(Coordinate {
-            row: coordinate.row + 1,
+            row: coordinate.row + one,
             col: coordinate.col,
         });
     }
     if coordinate.col != min_col {
         adj.push(Coordinate {
             row: coordinate.row,
-            col: coordinate.col - 1,
+            col: coordinate.col - one,
         });
     }
-    if coordinate.col != max_col - 1 {
+    if coordinate.col != max_col - one {
         adj.push(Coordinate {
             row: coordinate.row,
-            col: coordinate.col + 1,
+            col: coordinate.col + one,
         });
     }
     adj
 }
 
-pub fn get_adjacent_points_diagonal(
-    coordinate: Coordinate,
-    min_row: i32,
-    min_col: i32,
-    max_row: i32,
-    max_col: i32,
-) -> Vec<Coordinate> {
+pub fn get_adjacent_points_diagonal<T: PrimInt>(
+    coordinate: Coordinate<T>,
+    min_row: T,
+    min_col: T,
+    max_row: T,
+    max_col: T,
+) -> Vec<Coordinate<T>> {
     let mut adj = get_adjacent_points(coordinate, min_row, min_col, max_row, max_col);
+    let one = T::one();
     if coordinate.row != min_row && coordinate.col != min_col {
         adj.push(Coordinate {
-            row: coordinate.row - 1,
-            col: coordinate.col - 1,
+            row: coordinate.row - one,
+            col: coordinate.col - one,
         });
     }
-    if coordinate.row != max_row - 1 && coordinate.col != max_col - 1 {
+    if coordinate.row != max_row - one && coordinate.col != max_col - one {
         adj.push(Coordinate {
-            row: coordinate.row + 1,
-            col: coordinate.col + 1,
+            row: coordinate.row + one,
+            col: coordinate.col + one,
         });
     }
-    if coordinate.col != min_col && coordinate.row != max_row - 1 {
+    if coordinate.col != min_col && coordinate.row != max_row - one {
         adj.push(Coordinate {
-            row: coordinate.row + 1,
-            col: coordinate.col - 1,
+            row: coordinate.row + one,
+            col: coordinate.col - one,
         });
     }
-    if coordinate.col != max_col - 1 && coordinate.row != min_row {
+    if coordinate.col != max_col - one && coordinate.row != min_row {
         adj.push(Coordinate {
-            row: coordinate.row - 1,
-            col: coordinate.col + 1,
+            row: coordinate.row - one,
+            col: coordinate.col + one,
         });
     }
     adj
@@ -216,18 +178,22 @@ pub fn print_matrix(matrix: &Vec<Vec<u32>>) {
     println!();
 }
 
-pub fn print_coordinates(matrix: &[Coordinate], origin_top_left: bool) {
+pub fn print_coordinates<T: PrimInt>(matrix: &[Coordinate<T>], origin_top_left: bool) {
     let min_row = matrix.iter().map(|c| c.row).min().unwrap();
     let max_row = matrix.iter().map(|c| c.row).max().unwrap();
     let min_col = matrix.iter().map(|c| c.col).min().unwrap();
     let max_col = matrix.iter().map(|c| c.col).max().unwrap();
     let row_iter = if origin_top_left {
-        (min_row..=max_row).collect_vec()
+        range_inclusive(min_row, max_row).collect_vec()
     } else {
-        (min_row..=max_row).rev().collect_vec()
+        range_inclusive(min_row, max_row)
+            .collect_vec()
+            .into_iter()
+            .rev()
+            .collect_vec()
     };
     for row in row_iter {
-        for col in min_col..=max_col {
+        for col in range_inclusive(min_col, max_col) {
             let c = Coordinate { row, col };
             if matrix.contains(&c) {
                 print!("#");

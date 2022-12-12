@@ -17,16 +17,16 @@ enum Direction {
 
 #[derive(Debug)]
 struct State {
-    head_position: Coordinate,
-    tail_position: Coordinate,
-    visited: HashSet<Coordinate>,
+    head_position: Coordinate<i32>,
+    tail_position: Coordinate<i32>,
+    visited: HashSet<Coordinate<i32>>,
 }
 
 #[derive(Debug)]
 struct State2 {
-    head_position: Coordinate,
-    knot_positions: Vec<Coordinate>,
-    visited: HashSet<Coordinate>,
+    head_position: Coordinate<i32>,
+    knot_positions: Vec<Coordinate<i32>>,
+    visited: HashSet<Coordinate<i32>>,
 }
 
 fn main() -> color_eyre::Result<()> {
@@ -100,7 +100,10 @@ fn solve_part1(input: &str) -> usize {
     state.visited.len()
 }
 
-fn resolve_tail_position(head_position: Coordinate, tail_position: Coordinate) -> Coordinate {
+fn resolve_tail_position(
+    head_position: Coordinate<i32>,
+    tail_position: Coordinate<i32>,
+) -> Coordinate<i32> {
     if get_adjacent_points_diagonal(head_position, i32::MIN, i32::MIN, i32::MAX, i32::MAX)
         .contains(&tail_position)
     {
@@ -194,9 +197,9 @@ fn solve_part2(input: &str) -> usize {
 }
 
 fn update_knot_positions(
-    head_position: Coordinate,
-    current_positions: &Vec<Coordinate>,
-) -> Vec<Coordinate> {
+    head_position: Coordinate<i32>,
+    current_positions: &Vec<Coordinate<i32>>,
+) -> Vec<Coordinate<i32>> {
     current_positions
         .iter()
         .fold(
@@ -210,7 +213,7 @@ fn update_knot_positions(
         .1
 }
 
-fn validate_state(knot_positions: &Vec<Coordinate>) {
+fn validate_state(knot_positions: &Vec<Coordinate<i32>>) {
     if !(knot_positions
         .iter()
         .take(knot_positions.len() - 1)

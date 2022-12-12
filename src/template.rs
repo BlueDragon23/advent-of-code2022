@@ -32,18 +32,20 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_part1() {
+    fn test_part1() -> color_eyre::Result<()> {
         let input = include_str!("../../input/example.test.txt");
-        let input_processed = parse_input(input).unwrap();
+        let input_processed = parse_input(input)?;
         let result = solve_part1(&input_processed);
         assert!(result == 1);
+        Ok(())
     }
 
     #[test]
-    fn test_part2() {
+    fn test_part2() -> color_eyre::Result<()> {
         let input = include_str!("../../input/example.test.txt");
-        let input_processed = parse_input(input).unwrap();
+        let input_processed = parse_input(input)?;
         let result = solve_part2(&input_processed);
         assert!(result == 1);
+        Ok(())
     }
 }

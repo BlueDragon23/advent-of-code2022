@@ -57,12 +57,12 @@ fn add_value(cycle: i32, register: i32) -> i32 {
 }
 
 struct State {
-    results: Vec<Coordinate>,
+    results: Vec<Coordinate<i32>>,
     cycle: i32,
     register: i32,
 }
 
-fn solve_part2(input: &[Instruction]) -> Vec<Coordinate> {
+fn solve_part2(input: &[Instruction]) -> Vec<Coordinate<i32>> {
     input
         .iter()
         .fold(
@@ -97,7 +97,7 @@ fn solve_part2(input: &[Instruction]) -> Vec<Coordinate> {
         .results
 }
 
-fn draw_pixel(cycle: i32, register: i32) -> Option<Coordinate> {
+fn draw_pixel(cycle: i32, register: i32) -> Option<Coordinate<i32>> {
     let row = cycle.div_euclid(WIDTH);
     let col = (cycle - 1) % WIDTH;
 
