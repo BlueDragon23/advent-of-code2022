@@ -104,6 +104,41 @@ pub fn parse_lines_to_nums(lines: Lines<BufReader<File>>) -> Vec<i32> {
 //         .collect_vec()
 // }
 
+pub fn get_adjacent_positive_points(
+    coordinate: PositiveCoordinate,
+    min_row: usize,
+    min_col: usize,
+    max_row: usize,
+    max_col: usize,
+) -> Vec<PositiveCoordinate> {
+    let mut adj = vec![];
+    if coordinate.row != min_row {
+        adj.push(PositiveCoordinate {
+            row: coordinate.row - 1,
+            col: coordinate.col,
+        });
+    }
+    if coordinate.row != max_row - 1 {
+        adj.push(PositiveCoordinate {
+            row: coordinate.row + 1,
+            col: coordinate.col,
+        });
+    }
+    if coordinate.col != min_col {
+        adj.push(PositiveCoordinate {
+            row: coordinate.row,
+            col: coordinate.col - 1,
+        });
+    }
+    if coordinate.col != max_col - 1 {
+        adj.push(PositiveCoordinate {
+            row: coordinate.row,
+            col: coordinate.col + 1,
+        });
+    }
+    adj
+}
+
 pub fn get_adjacent_points(
     coordinate: Coordinate,
     min_row: i32,
