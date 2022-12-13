@@ -5,10 +5,9 @@ struct Input {
 }
 
 fn main() -> color_eyre::Result<()> {
-    let input = include_str!("../../input/example.txt");
-    let input_processed = parse_input(input)?;
-    println!("Part 1: {}", solve_part1(&input_processed));
-    println!("Part 2: {}", solve_part2(&input_processed));
+    let input = parse_input(include_str!("../../input/example.txt"))?;
+    println!("Part 1: {}", solve_part1(&input));
+    println!("Part 2: {}", solve_part2(&input));
     Ok(())
 }
 
@@ -33,19 +32,17 @@ mod tests {
 
     #[test]
     fn test_part1() -> color_eyre::Result<()> {
-        let input = include_str!("../../input/example.test.txt");
-        let input_processed = parse_input(input)?;
-        let result = solve_part1(&input_processed);
-        assert!(result == 1);
+        let input = parse_input(include_str!("../../input/example.test.txt"))?;
+        let result = solve_part1(&input);
+        assert_eq!(result, 1);
         Ok(())
     }
 
     #[test]
     fn test_part2() -> color_eyre::Result<()> {
-        let input = include_str!("../../input/example.test.txt");
-        let input_processed = parse_input(input)?;
-        let result = solve_part2(&input_processed);
-        assert!(result == 1);
+        let input = parse_input(include_str!("../../input/example.test.txt"))?;
+        let result = solve_part2(&input);
+        assert_eq!(result, 1);
         Ok(())
     }
 }

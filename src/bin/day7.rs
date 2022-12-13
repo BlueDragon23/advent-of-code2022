@@ -1,21 +1,8 @@
-use core::panic;
 use std::collections::HashMap;
 
 use itertools::Itertools;
+use petgraph::{graph::DiGraph, stable_graph::NodeIndex, visit::DfsPostOrder};
 use reformation::Reformation;
-
-#[derive(Debug, Clone)]
-struct Node<'a> {
-    name: String,
-    contents: Element<'a>,
-    parent: &'a Option<Box<Node<'a>>>,
-}
-
-#[derive(Debug, Clone)]
-enum Element<'a> {
-    Directory(Vec<Box<Node<'a>>>),
-    File(u64),
-}
 
 #[derive(Debug, Reformation, Clone)]
 #[reformation()]
@@ -31,113 +18,147 @@ enum Command {
 }
 
 #[derive(Debug, Clone)]
-struct State<'a> {
-    current_node: Option<Box<Node<'a>>>,
-    root_node: Option<Box<Node<'a>>>,
+struct File {
+    size: u64,
+    name: String,
+    is_dir: bool,
 }
 
+const TOTAL_SIZE: u64 = 70_000_000;
+const REQUIRED_FREE_SIZE: u64 = 30_000_000;
+
 fn main() -> color_eyre::Result<()> {
-    let commands = include_str!("../../input/day7.txt")
-        .lines()
-        .map(|line| Command::parse(line).unwrap())
-        .collect_vec();
-
-    let mut index = 0;
-    let mut state = State {
-        current_node: None,
-        root_node: None,
-    };
-    while index < commands.len() {
-        match &commands[index] {
-            Command::Cd(path) => {
-                match path.as_str() {
-                    "/" => {
-                        if state.root_node.is_none() {
-                            state.root_node = Some(Box::new(Node {
-                                name: "/".to_owned(),
-                                contents: Element::Directory(vec![]),
-                                parent: &None,
-                            }));
-                        }
-                        state.current_node = state.root_node;
-                    }
-                    ".." => {
-                        state.current_node = *state.current_node.unwrap().parent;
-                    }
-                    _ => {
-                        state.current_node = match state.current_node.unwrap().contents {
-                            Element::Directory(children) => children
-                                .iter()
-                                .find(|child| &child.name == path)
-                                .map(|&x| x),
-                            Element::File(_) => panic!("Current node should never be a file"),
-                        };
-                    }
-                };
-                index += 1;
-            }
-            Command::Ls => {
-                let (new_index, nodes) = read_directory(&commands, index, &state.current_node);
-                index = new_index;
-                state.current_node.unwrap().contents = Element::Directory(nodes);
-            }
-            _ => panic!("Unexpected command"),
-        };
-    }
-
-    // dbg!(&state.tree);
-    let first_node = state.root_node.unwrap();
-    let sizes = find_node_size(&first_node);
-
-    let result: u64 = sizes
-        .iter()
-        .filter(|(_, &size)| size < 100000)
-        .map(|(_, size)| size)
-        .sum();
-    dbg!(result);
-
+    let commands = parse_input(include_str!("../../input/day7.txt"))?;
+    println!("Part 1: {}", solve_part1(&commands).unwrap());
+    println!("Part 2: {}", solve_part2(&commands));
     Ok(())
 }
 
-fn read_directory<'a>(
-    commands: &[Command],
-    index: usize,
-    parent: &'a Option<Box<Node<'a>>>,
-) -> (usize, Vec<Box<Node<'a>>>) {
-    let mut current_index = index + 1;
-    let mut nodes = vec![];
-    loop {
-        match commands.get(current_index) {
-            Some(Command::Dir(name)) => nodes.push(Box::new(Node {
-                name: (*name.clone()).to_string(),
-                contents: Element::Directory(vec![]),
-                parent: parent,
-            })),
-            Some(Command::File(size, name)) => nodes.push(Box::new(Node {
-                name: (*name.clone()).to_string(),
-                contents: Element::File(*size),
-                parent: parent,
-            })),
-            _ => return (current_index, nodes),
-        }
-        current_index += 1
-    }
+fn parse_input(input: &str) -> color_eyre::Result<Vec<Command>> {
+    input
+        .lines()
+        .map(|line| Ok(Command::parse(line)?))
+        .collect()
 }
 
-fn find_node_size(node: &Node) -> HashMap<String, u64> {
-    match &node.contents {
-        Element::Directory(children) => {
-            let mut sizes: HashMap<String, u64> = children
-                .into_iter()
-                .flat_map(|child| find_node_size(child))
-                .collect();
-            let dir_size = children
-                .iter()
-                .map(|child| sizes.get(&child.name).unwrap())
-                .sum();
-            sizes.insert(node.name.clone(), dir_size);
-            sizes
+fn build_graph(commands: &[Command]) -> (DiGraph<File, u64>, NodeIndex<u32>) {
+    let mut graph: DiGraph<File, u64> = DiGraph::default();
+    let mut current_node = graph.add_node(File {
+        name: "/".to_owned(),
+        size: 0,
+        is_dir: true,
+    });
+    let root = current_node;
+    for command in commands {
+        match command {
+            Command::Cd(path) => {
+                match path.as_str() {
+                    "/" => {
+                        // do nothing
+                    }
+                    ".." => {
+                        // back to parent
+                        current_node = graph
+                            .neighbors_undirected(current_node)
+                            .find(|neighbor| graph.find_edge(*neighbor, current_node).is_some())
+                            .unwrap();
+                    }
+                    name => {
+                        let new_node = graph.add_node(File {
+                            name: name.to_owned(),
+                            size: 0,
+                            is_dir: true,
+                        });
+                        graph.add_edge(current_node, new_node, 0);
+                        current_node = new_node;
+                    }
+                }
+            }
+            Command::Ls => {
+                // do nothing
+            }
+            Command::Dir(_) => {
+                // add directories when we cd instead
+            }
+            Command::File(size, name) => {
+                let new_node = graph.add_node(File {
+                    name: name.to_owned(),
+                    size: *size,
+                    is_dir: false,
+                });
+                graph.add_edge(current_node, new_node, 0);
+            }
         }
-        Element::File(size) => HashMap::from([(node.name.clone(), *size)]),
+    }
+    (graph, root)
+}
+
+fn solve_part1(commands: &[Command]) -> Option<u64> {
+    let (graph, root) = build_graph(commands);
+    // find size of each node
+    let results = get_file_sizes(graph, root);
+    Some(
+        results
+            .values()
+            .filter(|&file| file.is_dir && file.size <= 100_000)
+            .map(|file| file.size)
+            .sum(),
+    )
+}
+
+fn get_file_sizes(graph: DiGraph<File, u64>, root: NodeIndex) -> HashMap<NodeIndex, File> {
+    let mut visitor = DfsPostOrder::new(&graph, root);
+    let mut results: HashMap<NodeIndex, File> = HashMap::new();
+    while let Some(node) = visitor.next(&graph) {
+        let file = graph.node_weight(node).unwrap();
+        if file.size == 0 {
+            // directory
+            let total_weight = graph
+                .neighbors(node)
+                .fold(0, |sum, n| (results.get(&n).unwrap()).size + sum);
+            results.insert(
+                node,
+                File {
+                    name: file.name.clone(),
+                    size: total_weight,
+                    is_dir: true,
+                },
+            );
+        } else {
+            // file
+            results.insert(node, file.clone());
+        }
+    }
+    results
+}
+
+fn solve_part2(commands: &[Command]) -> u64 {
+    let (graph, root) = build_graph(commands);
+    // find size of each node
+    let results = get_file_sizes(graph, root);
+    let consumed_space = results.values().find(|file| file.name == "/").unwrap().size;
+    let desired_usage = TOTAL_SIZE - REQUIRED_FREE_SIZE;
+    let required_to_delete = consumed_space - desired_usage;
+    results.values().filter(|file| file.is_dir && file.size >= required_to_delete).map(|file| file.size).sorted().next().unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_part1() -> color_eyre::Result<()> {
+        let input = parse_input(include_str!("../../input/day7.test.txt"))?;
+        let result = solve_part1(&input).expect("Result should be found");
+        assert_eq!(result, 95437);
+        Ok(())
+    }
+
+    #[test]
+    fn test_part2() -> color_eyre::Result<()> {
+        let input = parse_input(include_str!("../../input/day7.test.txt"))?;
+        let result = solve_part2(&input);
+        assert_eq!(result, 24933642);
+        Ok(())
     }
 }
