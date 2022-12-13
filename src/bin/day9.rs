@@ -196,7 +196,7 @@ fn solve_part2(input: &str) -> usize {
 
 fn update_knot_positions(
     head_position: Coordinate<i32>,
-    current_positions: &Vec<Coordinate<i32>>,
+    current_positions: &[Coordinate<i32>],
 ) -> Vec<Coordinate<i32>> {
     current_positions
         .iter()

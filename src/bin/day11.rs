@@ -53,7 +53,7 @@ fn parse_input(input: &str) -> color_eyre::Result<Vec<Monkey>> {
             let mut lines = group.lines().skip(1);
             let items = parse_items(lines.next()?);
             let operation = Operation::parse(lines.next()?).unwrap();
-            let test = lines.next()?.split(" ").last()?.parse::<u128>().unwrap();
+            let test = lines.next()?.split(' ').last()?.parse::<u128>().unwrap();
             let target_true = lines.next()?.chars().last()?.to_digit(10)? as usize;
             let target_false = lines.next()?.chars().last()?.to_digit(10)? as usize;
             Some(Monkey {
@@ -69,16 +69,16 @@ fn parse_input(input: &str) -> color_eyre::Result<Vec<Monkey>> {
 }
 
 fn parse_items(line: &str) -> VecDeque<u128> {
-    line.split(":")
+    line.split(':')
         .last()
         .unwrap()
-        .split(",")
+        .split(',')
         .map(|x| x.trim().parse::<u128>().unwrap())
         .collect()
 }
 
-fn solve_part1(input: &Vec<Monkey>) -> u128 {
-    let mut monkeys = input.clone();
+fn solve_part1(input: &[Monkey]) -> u128 {
+    let mut monkeys = input.to_vec();
     let gcd = gcd(&monkeys);
     let num_rounds = 20;
     let mut inspection_count: Vec<u128> = vec![0; monkeys.len()];
@@ -94,13 +94,13 @@ fn solve_part1(input: &Vec<Monkey>) -> u128 {
     inspection_count.iter().sorted().rev().take(2).product()
 }
 
-fn process_round(monkeys: &Vec<Monkey>, part: u32, gcd: u128) -> (Vec<Monkey>, Vec<u128>) {
-    let mut monkeys = monkeys.clone();
+fn process_round(monkeys: &[Monkey], part: u32, gcd: u128) -> (Vec<Monkey>, Vec<u128>) {
+    let mut new_monkeys = monkeys.to_vec();
     let mut inspection_count = vec![0; monkeys.len()];
     for index in 0..monkeys.len() {
         let (updates, inspections) = process_monkey(&monkeys[index], part, gcd);
         inspection_count[index] += inspections;
-        monkeys = monkeys
+        new_monkeys = new_monkeys
             .into_iter()
             .enumerate()
             .map(|(i, mut m)| {
@@ -108,7 +108,7 @@ fn process_round(monkeys: &Vec<Monkey>, part: u32, gcd: u128) -> (Vec<Monkey>, V
                     m.items.clear();
                 } else {
                     for item in updates.get(&i).unwrap_or(&VecDeque::new()) {
-                        m.items.push_back(item.clone());
+                        m.items.push_back(*item);
                     }
                 }
                 m
@@ -116,11 +116,11 @@ fn process_round(monkeys: &Vec<Monkey>, part: u32, gcd: u128) -> (Vec<Monkey>, V
             .collect_vec();
     }
 
-    (monkeys, inspection_count)
+    (new_monkeys, inspection_count)
 }
 
 fn process_monkey(monkey: &Monkey, part: u32, gcd: u128) -> (HashMap<usize, VecDeque<u128>>, u128) {
-    let mut next_items = HashMap::new();
+    let mut next_items: HashMap<usize, VecDeque<u128>> = HashMap::new();
     let mut inspections = 0;
     let mut items = monkey.items.clone();
     while let Some(worry) = items.pop_front() {
@@ -140,8 +140,8 @@ fn process_monkey(monkey: &Monkey, part: u32, gcd: u128) -> (HashMap<usize, VecD
         };
         next_items
             .entry(next_monkey)
-            .or_insert(VecDeque::new())
-            .push_back(new_worry.clone());
+            .or_default()
+            .push_back(new_worry);
     }
     (next_items, inspections)
 }
@@ -160,11 +160,11 @@ fn reduce_below_gcd(worry: u128, gcd: u128) -> u128 {
 
 fn increase_worry(old: u128, operation: Operation) -> u128 {
     let left = match operation.left {
-        Operand::Old => old.clone(),
+        Operand::Old => old,
         Operand::Constant(x) => x,
     };
     let right = match operation.right {
-        Operand::Old => old.clone(),
+        Operand::Old => old,
         Operand::Constant(x) => x,
     };
     match operation.operator {
@@ -177,8 +177,8 @@ fn reduce_worry(worry: u128) -> u128 {
     worry.div_euclid(3)
 }
 
-fn solve_part2(input: &Vec<Monkey>) -> u128 {
-    let mut monkeys = input.clone();
+fn solve_part2(input: &[Monkey]) -> u128 {
+    let mut monkeys = input.to_vec();
     let gcd = gcd(&monkeys);
     let num_rounds = 10000;
     let mut inspection_count = vec![0; monkeys.len()];
@@ -194,7 +194,7 @@ fn solve_part2(input: &Vec<Monkey>) -> u128 {
     inspection_count.iter().sorted().rev().take(2).product()
 }
 
-fn gcd(monkeys: &Vec<Monkey>) -> u128 {
+fn gcd(monkeys: &[Monkey]) -> u128 {
     // 17, 13 -> 221
     // x % 17 = (x - 221) % 17
     // x % 13 = (x - 221) % 13

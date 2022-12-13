@@ -3,6 +3,7 @@ use std::{cmp::Ordering, collections::HashMap};
 use advent_of_code2022::{get_adjacent_points, Coordinate};
 use itertools::Itertools;
 
+#[derive(Debug)]
 struct Input {
     start: Coordinate<usize>,
     end: Coordinate<usize>,
@@ -81,7 +82,7 @@ fn find_shortest_path(
     let mut best_route: HashMap<Coordinate<usize>, Node> = HashMap::new();
     best_route.insert(start, Node { c: start, cost: 0 });
     let mut unvisited = vec![Node { c: start, cost: 0 }];
-    
+
     while let Some(index) = unvisited.iter().position_min() {
         let current = unvisited.remove(index);
         best_route.insert(current.c, current);

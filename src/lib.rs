@@ -22,7 +22,7 @@ impl<T: PrimInt> Default for Coordinate<T> {
 }
 
 impl Coordinate<usize> {
-    pub fn get<V: Copy>(&self, matrix: &Vec<Vec<V>>) -> V {
+    pub fn get<V: Copy>(&self, matrix: &[Vec<V>]) -> V {
         matrix[self.row][self.col]
     }
 }
@@ -186,7 +186,7 @@ pub fn get_adjacent_points_diagonal<T: PrimInt>(
     adj
 }
 
-pub fn print_matrix(matrix: &Vec<Vec<u32>>) {
+pub fn print_matrix(matrix: &[Vec<u32>]) {
     for line in matrix {
         println!("{}", line.iter().join(""));
     }
