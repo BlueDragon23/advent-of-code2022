@@ -1,8 +1,4 @@
-use itertools::Itertools;
-
-struct Input {
-
-}
+struct Input {}
 
 fn main() -> color_eyre::Result<()> {
     let input = parse_input(include_str!("../../input/example.txt"))?;
@@ -12,10 +8,7 @@ fn main() -> color_eyre::Result<()> {
 }
 
 fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
-    input
-        .lines()
-        .map(|line| Ok(Input{}))
-        .collect()
+    input.lines().map(|line| Ok(Input {})).collect()
 }
 
 fn solve_part1(input: &Vec<Input>) -> u32 {

@@ -1,3 +1,4 @@
+use std::cmp::{max, min};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::{BufRead, Lines};
@@ -6,24 +7,34 @@ use itertools::Itertools;
 use num::{range_inclusive, PrimInt};
 use reformation::Reformation;
 
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq)]
 pub struct Coordinate<T: PrimInt> {
     pub row: T,
     pub col: T,
 }
 
-impl<T: PrimInt> Default for Coordinate<T> {
-    fn default() -> Self {
-        Coordinate {
-            row: T::zero(),
-            col: T::zero(),
-        }
-    }
-}
-
 impl Coordinate<usize> {
     pub fn get<V: Copy>(&self, matrix: &[Vec<V>]) -> V {
         matrix[self.row][self.col]
+    }
+}
+
+impl<T: PrimInt> Coordinate<T> {
+    pub fn get_between(&self, other: &Coordinate<T>) -> Vec<Coordinate<T>> {
+        if self.row == other.row {
+            range_inclusive(min(self.col, other.col), max(self.col, other.col))
+                .map(|col| Coordinate {
+                    row: other.row,
+                    col,
+                })
+                .collect_vec()
+        } else if self.col == other.col {
+            range_inclusive(min(self.row, other.row), max(self.row, other.row))
+                .map(|row| Coordinate { row, col: self.col })
+                .collect_vec()
+        } else {
+            panic!("Invalid coordinates passed, must form a straight line");
+        }
     }
 }
 

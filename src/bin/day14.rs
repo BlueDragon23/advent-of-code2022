@@ -1,8 +1,4 @@
-use std::{
-    cmp::{max, min},
-    collections::HashMap,
-    iter::repeat,
-};
+use std::collections::HashMap;
 
 use advent_of_code2022::Coordinate;
 use itertools::Itertools;
@@ -51,26 +47,12 @@ fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
         .collect())
 }
 
-fn iterate_points(start: &Coordinate<u32>, end: &Coordinate<u32>) -> Vec<Coordinate<u32>> {
-    if start.row == end.row {
-        (min(start.col, end.col)..=(max(start.col, end.col)))
-            .zip(repeat(start.row))
-            .map(|(col, row)| Coordinate { row, col })
-            .collect_vec()
-    } else {
-        (min(start.row, end.row)..=(max(start.row, end.row)))
-            .zip(repeat(start.col))
-            .map(|(row, col)| Coordinate { row, col })
-            .collect_vec()
-    }
-}
-
 fn build_grid(input: &Vec<Input>) -> HashMap<Coordinate<u32>, Contents> {
     let mut map = HashMap::new();
     for line in input {
         for (start, end) in line.iter().tuple_windows() {
             // every point between the points is rock
-            let coords = iterate_points(start, end);
+            let coords = start.get_between(end);
             for c in coords {
                 map.insert(c, Contents::Rock);
             }
@@ -79,14 +61,10 @@ fn build_grid(input: &Vec<Input>) -> HashMap<Coordinate<u32>, Contents> {
     map
 }
 
-fn drop_sand(
-    grid: &HashMap<Coordinate<u32>, Contents>,
-    lowest: u32,
-    part: u32,
-) -> Option<Coordinate<u32>> {
+fn drop_sand(grid: &HashMap<Coordinate<u32>, Contents>, lowest: u32) -> Option<Coordinate<u32>> {
     let mut current = SAND_ORIGIN;
     loop {
-        if part == 1 && current.row > lowest {
+        if current.row > lowest {
             return None;
         }
         let contents = grid.get(&current);
@@ -131,7 +109,7 @@ fn solve_part1(input: &Vec<Input>) -> usize {
     let mut grid = build_grid(input);
     // if we go below this, we're off the map
     let lowest = grid.keys().map(|c| c.row).max().unwrap();
-    while let Some(c) = drop_sand(&grid, lowest, 1) {
+    while let Some(c) = drop_sand(&grid, lowest) {
         grid.insert(c, Contents::Sand);
     }
     count_grains(&grid)
@@ -154,7 +132,7 @@ fn solve_part2(input: &Vec<Input>) -> usize {
         grid.insert(Coordinate { row: floor, col }, Contents::Rock);
     }
 
-    while let Some(c) = drop_sand(&grid, lowest, 2) {
+    while let Some(c) = drop_sand(&grid, lowest + 2) {
         grid.insert(c, Contents::Sand);
         if c == SAND_ORIGIN {
             break;
