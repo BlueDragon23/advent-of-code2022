@@ -20,6 +20,10 @@ impl Coordinate<usize> {
 }
 
 impl<T: PrimInt> Coordinate<T> {
+    pub fn new(row: T, col: T) -> Coordinate<T> {
+        Coordinate { row, col }
+    }
+
     pub fn get_between(&self, other: &Coordinate<T>) -> Vec<Coordinate<T>> {
         if self.row == other.row {
             range_inclusive(min(self.col, other.col), max(self.col, other.col))

@@ -1,3 +1,5 @@
+use nom::{bytes::complete::tag, combinator::map, Finish, IResult};
+
 struct Input {}
 
 fn main() -> color_eyre::Result<()> {
@@ -7,8 +9,15 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
+fn parse_line(input: &str) -> IResult<&str, Input> {
+    map(tag(" -> "), |_| Input {})(input)
+}
+
 fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
-    input.lines().map(|line| Ok(Input {})).collect()
+    Ok(input
+        .lines()
+        .map(|line| parse_line(line).finish().unwrap().1)
+        .collect())
 }
 
 fn solve_part1(input: &Vec<Input>) -> u32 {
