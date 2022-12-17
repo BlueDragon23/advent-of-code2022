@@ -1,3 +1,4 @@
+use core::prelude::v1;
 use std::{
     cell::RefCell,
     collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
@@ -25,6 +26,13 @@ struct Input<'a> {
 
 // The second field is a hash of the open valve vec
 type State<'a> = (NodeIndex<u32>, u64, u32);
+type State2<'a> = (NodeIndex<u32>, NodeIndex<u32>, u64, u32);
+
+#[derive(PartialEq, Eq, Debug)]
+enum Decision {
+    Valve(NodeIndex<u32>),
+    Move(NodeIndex<u32>),
+}
 
 fn main() -> color_eyre::Result<()> {
     let input = parse_input(include_str!("../../input/day16.txt"))?;
@@ -233,7 +241,142 @@ fn find_max_pressure(
 }
 
 fn solve_part2(root: &NodeIndex<u32>, input: &UnGraph<u32, u32>) -> u32 {
-    1
+    // do graph search things
+    find_max_pressure_2(
+        input,
+        root,
+        root,
+        &BTreeSet::new(),
+        // 4 minutes have passed
+        5,
+        &RefCell::new(HashMap::new()),
+    )
+    .unwrap()
+}
+
+fn find_max_pressure_2(
+    graph: &UnGraph<u32, u32>,
+    current: &NodeIndex<u32>,
+    current_elephant: &NodeIndex<u32>,
+    open_valves: &BTreeSet<NodeIndex<u32>>,
+    time_passed: u32,
+    memoising: &RefCell<HashMap<State2, u32>>,
+) -> Option<u32> {
+    // println!(
+    //     "minute: {:?}, current: {:?}, open: {:?}",
+    //     time_passed,
+    //     print_node_name_test(current),
+    //     open_valves.iter().map(print_node_name_test).collect_vec()
+    // );
+    // memoisation
+    if let Some((_, value)) = memoising.borrow().get_key_value(&(
+        *current,
+        *current_elephant,
+        hash_valves(open_valves),
+        time_passed,
+    )) {
+        // println!("Returning cached value {}", value);
+        return Some(*value);
+    }
+
+    // calculation
+    let flow_this_minute = get_flow(graph, open_valves);
+    // println!("Currently flowing at {}/min", flow_this_minute);
+    if time_passed == 30 {
+        // println!(
+        //     "Caching value {} at minute {}",
+        //     flow_this_minute, time_passed
+        // );
+        memoising.borrow_mut().insert(
+            (
+                *current,
+                *current_elephant,
+                hash_valves(open_valves),
+                time_passed,
+            ),
+            flow_this_minute,
+        );
+        // count the last minute of flow
+        return Some(flow_this_minute);
+    }
+    // at every node you have choices
+    let choices = get_choices(graph, current, open_valves);
+    let temp = get_choices(graph, current_elephant, open_valves);
+    let elephant_choices = temp
+        .iter()
+        .filter(|choice| match choice {
+            // make sure they don't open the same valve
+            v @ Decision::Valve(_) => !choices.contains(v),
+            _ => true,
+        })
+        .collect_vec();
+
+    let best_result = choices
+        .iter()
+        .cartesian_product(elephant_choices)
+        .flat_map(|(c1, c2)| match (c1, c2) {
+            (Decision::Valve(v1), Decision::Valve(v2)) => {
+                let mut new_valves = open_valves.clone();
+                new_valves.insert(*v1);
+                new_valves.insert(*v2);
+                find_max_pressure_2(
+                    graph,
+                    current,
+                    current_elephant,
+                    &new_valves,
+                    time_passed + 1,
+                    memoising,
+                )
+            }
+            (Decision::Valve(v), Decision::Move(p)) => {
+                let mut new_valves = open_valves.clone();
+                new_valves.insert(*v);
+                find_max_pressure_2(graph, current, p, &new_valves, time_passed + 1, memoising)
+            }
+            (Decision::Move(p), Decision::Valve(v)) => {
+                let mut new_valves = open_valves.clone();
+                new_valves.insert(*v);
+                find_max_pressure_2(
+                    graph,
+                    p,
+                    current_elephant,
+                    &new_valves,
+                    time_passed + 1,
+                    memoising,
+                )
+            }
+            (Decision::Move(p1), Decision::Move(p2)) => {
+                find_max_pressure_2(graph, p1, p2, open_valves, time_passed + 1, memoising)
+            }
+        })
+        .map(|child| child + flow_this_minute)
+        .max()?;
+    memoising.borrow_mut().insert(
+        (
+            *current,
+            *current_elephant,
+            hash_valves(open_valves),
+            time_passed,
+        ),
+        best_result,
+    );
+    Some(best_result)
+}
+
+fn get_choices(
+    graph: &UnGraph<u32, u32>,
+    current: &NodeIndex<u32>,
+    open_valves: &BTreeSet<NodeIndex<u32>>,
+) -> Vec<Decision> {
+    let mut decisions = vec![];
+    // if valve is not open, open valve
+    if !open_valves.contains(current) && *graph.node_weight(*current).unwrap() > 0 {
+        // try opening this one then moving
+        decisions.push(Decision::Valve(*current));
+    }
+    // try just moving to adjacent valve
+    decisions.extend(graph.neighbors(*current).map(Decision::Move));
+    decisions
 }
 
 #[cfg(test)]
