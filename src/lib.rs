@@ -50,15 +50,32 @@ pub struct Range {
 }
 
 impl Range {
-    pub fn is_subrange(&self, other: Range) -> bool {
+    pub fn is_subrange(&self, other: &Range) -> bool {
         self.lower >= other.lower && self.upper <= other.upper
     }
 
-    pub fn overlap(&self, other: Range) -> bool {
+    pub fn overlap(&self, other: &Range) -> bool {
         (self.lower >= other.lower && self.lower <= other.upper)
             || (self.upper <= other.upper && self.upper >= other.lower)
             || self.is_subrange(other)
-            || other.is_subrange(*self)
+            || other.is_subrange(self)
+    }
+
+    pub fn overlap_or_adjacent(&self, other: &Range) -> bool {
+        (self.lower >= other.lower && self.lower <= other.upper)
+            || (self.upper <= other.upper && self.upper >= other.lower)
+            || self.is_subrange(other)
+            || other.is_subrange(self)
+            || self.upper == other.lower - 1
+            || other.upper == self.lower - 1
+    }
+
+    // assume overlap
+    pub fn merge(&self, other: &Range) -> Range {
+        Range {
+            lower: min(self.lower, other.lower),
+            upper: max(self.upper, other.upper),
+        }
     }
 }
 

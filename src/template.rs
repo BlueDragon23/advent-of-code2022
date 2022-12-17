@@ -1,11 +1,22 @@
 use nom::{bytes::complete::tag, combinator::map, Finish, IResult};
+use std::time::Instant;
 
 struct Input {}
 
 fn main() -> color_eyre::Result<()> {
     let input = parse_input(include_str!("../../input/example.txt"))?;
-    println!("Part 1: {}", solve_part1(&input));
-    println!("Part 2: {}", solve_part2(&input));
+    let time = Instant::now();
+    println!(
+        "Part 1: {} in {}ms",
+        solve_part1(&input),
+        time.elapsed().as_millis()
+    );
+    let time = Instant::now();
+    println!(
+        "Part 2: {} in {}ms",
+        solve_part2(&input),
+        time.elapsed().as_millis()
+    );
     Ok(())
 }
 

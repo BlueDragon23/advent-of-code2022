@@ -1,8 +1,8 @@
-use core::prelude::v1;
 use std::{
     cell::RefCell,
     collections::{hash_map::DefaultHasher, BTreeSet, HashMap},
     hash::{Hash, Hasher},
+    time::Instant,
 };
 
 use itertools::Itertools;
@@ -37,8 +37,18 @@ enum Decision {
 fn main() -> color_eyre::Result<()> {
     let input = parse_input(include_str!("../../input/day16.txt"))?;
     let (root, graph) = build_graph(input);
-    println!("Part 1: {}", solve_part1(&root, &graph));
-    println!("Part 2: {}", solve_part2(&root, &graph));
+    let now = Instant::now();
+    println!(
+        "Part 1: {} in {}ms",
+        solve_part1(&root, &graph),
+        now.elapsed().as_millis()
+    );
+    let now = Instant::now();
+    println!(
+        "Part 2: {} in {}ms",
+        solve_part2(&root, &graph),
+        now.elapsed().as_millis()
+    );
     Ok(())
 }
 
@@ -143,26 +153,6 @@ fn get_flow(graph: &UnGraph<u32, u32>, open_valves: &BTreeSet<NodeIndex<u32>>) -
         .sum()
 }
 
-fn print_node_name_test(index: &NodeIndex<u32>) -> String {
-    match index.index() {
-        0 => "AA",
-        1 => "BB",
-        2 => "CC",
-        3 => "DD",
-        4 => "EE",
-        5 => "FF",
-        6 => "GG",
-        7 => "HH",
-        8 => "II",
-        9 => "JJ",
-        x => {
-            dbg!(x);
-            "ZZ"
-        }
-    }
-    .to_owned()
-}
-
 fn find_max_pressure(
     graph: &UnGraph<u32, u32>,
     current: &NodeIndex<u32>,
@@ -170,30 +160,18 @@ fn find_max_pressure(
     time_passed: u32,
     memoising: &RefCell<HashMap<State, u32>>,
 ) -> Option<u32> {
-    // println!(
-    //     "minute: {:?}, current: {:?}, open: {:?}",
-    //     time_passed,
-    //     print_node_name_test(current),
-    //     open_valves.iter().map(print_node_name_test).collect_vec()
-    // );
     // memoisation
     if let Some((_, value)) =
         memoising
             .borrow()
             .get_key_value(&(*current, hash_valves(open_valves), time_passed))
     {
-        // println!("Returning cached value {}", value);
         return Some(*value);
     }
 
     // calculation
     let flow_this_minute = get_flow(graph, open_valves);
-    // println!("Currently flowing at {}/min", flow_this_minute);
     if time_passed == 30 {
-        // println!(
-        //     "Caching value {} at minute {}",
-        //     flow_this_minute, time_passed
-        // );
         memoising.borrow_mut().insert(
             (*current, hash_valves(open_valves), time_passed),
             flow_this_minute,
@@ -202,42 +180,29 @@ fn find_max_pressure(
         return Some(flow_this_minute);
     }
     // at every node you have choices
-    let mut results: Vec<(State, u32)> = vec![];
-    // if valve is not open, open valve
-    if !open_valves.contains(current) && *graph.node_weight(*current)? > 0 {
-        // try opening this one then moving
-        let mut new_valves = open_valves.clone();
-        new_valves.insert(*current);
-        let child = find_max_pressure(graph, current, &new_valves, time_passed + 1, memoising)?;
-        results.push((
-            (*current, hash_valves(open_valves), time_passed),
-            flow_this_minute + child,
-        ));
-    }
-    // try just moving to adjacent valve
-    results.extend(
-        graph
-            .neighbors(*current)
-            .map(|neighbour| {
-                (
-                    (neighbour, hash_valves(open_valves), time_passed + 1),
-                    find_max_pressure(graph, &neighbour, open_valves, time_passed + 1, memoising),
-                )
-            })
-            .map(|(state, child)| (state, flow_this_minute + child.unwrap())),
-    );
-    let actual_result = results.into_iter().max_by_key(|(_, value)| *value);
-    // println!(
-    //     "Caching value {} at node {} at minute {}",
-    //     actual_result?.1,
-    //     print_node_name_test(&actual_result?.0 .0),
-    //     time_passed
-    // );
+    let choices = get_choices(graph, current, open_valves);
+    let best_choice = choices
+        .iter()
+        .map(|c| {
+            match c {
+                Decision::Valve(v) => {
+                    // try opening this one then moving
+                    let mut new_valves = open_valves.clone();
+                    new_valves.insert(*v);
+                    find_max_pressure(graph, current, &new_valves, time_passed + 1, memoising)
+                }
+                Decision::Move(p) => {
+                    find_max_pressure(graph, p, open_valves, time_passed + 1, memoising)
+                }
+            }
+        })
+        .map(|child| flow_this_minute + child.unwrap())
+        .max()?;
     memoising.borrow_mut().insert(
         (*current, hash_valves(open_valves), time_passed),
-        actual_result?.1,
+        best_choice,
     );
-    Some(actual_result.unwrap().1)
+    Some(best_choice)
 }
 
 fn solve_part2(root: &NodeIndex<u32>, input: &UnGraph<u32, u32>) -> u32 {
@@ -262,12 +227,6 @@ fn find_max_pressure_2(
     time_passed: u32,
     memoising: &RefCell<HashMap<State2, u32>>,
 ) -> Option<u32> {
-    // println!(
-    //     "minute: {:?}, current: {:?}, open: {:?}",
-    //     time_passed,
-    //     print_node_name_test(current),
-    //     open_valves.iter().map(print_node_name_test).collect_vec()
-    // );
     // memoisation
     if let Some((_, value)) = memoising.borrow().get_key_value(&(
         *current,
@@ -281,12 +240,7 @@ fn find_max_pressure_2(
 
     // calculation
     let flow_this_minute = get_flow(graph, open_valves);
-    // println!("Currently flowing at {}/min", flow_this_minute);
     if time_passed == 30 {
-        // println!(
-        //     "Caching value {} at minute {}",
-        //     flow_this_minute, time_passed
-        // );
         memoising.borrow_mut().insert(
             (
                 *current,

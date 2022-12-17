@@ -17,7 +17,7 @@ fn main() {
     let result = reader
         .lines()
         .map(|line| Input::parse(&line.unwrap()).unwrap())
-        .filter(|input| input.first.overlap(input.second))
+        .filter(|input| input.first.overlap(&input.second))
         .count();
 
     println!("Result: {}", result);
