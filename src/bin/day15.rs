@@ -126,44 +126,30 @@ fn solve_part2(input: &[Input], max_bound: i32) -> i64 {
                 all_ranges
             },
         );
-    if let Some((row, ranges)) = every_range
+    if let Some((row, r)) = every_range
         .iter()
         .map(|(row, ranges)| {
             let mut new_ranges = ranges.clone();
             new_ranges.sort_by_key(|r| r.lower);
             (row, new_ranges)
         })
-        .filter_map(|(row, ranges)| {
+        .find_map(|(row, ranges)| {
             let (head, rest) = ranges.split_at(1);
-            let final_range = rest.iter().try_fold(head[0], |total, r| {
+            if let ControlFlow::Break(range) = rest.iter().try_fold(head[0], |total, r| {
                 if total.overlap_or_adjacent(r) {
-                    Some(total.merge(r))
+                    ControlFlow::Continue(total.merge(r))
                 } else {
-                    None
+                    ControlFlow::Break(*r)
                 }
-            });
-            if final_range.is_none() {
-                Some((row, ranges))
+            }) {
+                Some((row, range))
             } else {
                 None
             }
         })
-        .next()
     {
-        // find the one with a gap
-        let (head, rest) = ranges.split_at(1);
-        if let ControlFlow::Break(r) = rest.iter().try_fold(head[0], |total, r| {
-            if total.overlap_or_adjacent(r) {
-                ControlFlow::Continue(total.merge(r))
-            } else {
-                ControlFlow::Break(*r)
-            }
-        }) {
-            println!("x={}, y={}", r.lower - 1, row);
-            ((r.lower - 1) as i64) * 4000000 + (*row as i64)
-        } else {
-            panic!("Failed to find a result")
-        }
+        println!("x={}, y={}", r.lower - 1, row);
+        ((r.lower - 1) as i64) * 4000000 + (*row as i64)
     } else {
         panic!("Failed to find a result")
     }

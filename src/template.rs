@@ -1,10 +1,9 @@
-use nom::{bytes::complete::tag, combinator::map, Finish, IResult};
 use std::time::Instant;
 
-struct Input {}
+pub struct Input {}
 
 fn main() -> color_eyre::Result<()> {
-    let input = parse_input(include_str!("../../input/example.txt"))?;
+    let input = parsing::parse_input(include_str!("../../input/example.txt"))?;
     let time = Instant::now();
     println!(
         "Part 1: {} in {}ms",
@@ -20,15 +19,20 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn parse_line(input: &str) -> IResult<&str, Input> {
-    map(tag(" -> "), |_| Input {})(input)
-}
+mod parsing {
+    use super::Input;
+    use nom::{bytes::complete::tag, combinator::map, Finish, IResult};
 
-fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
-    Ok(input
-        .lines()
-        .map(|line| parse_line(line).finish().unwrap().1)
-        .collect())
+    fn parse_line(input: &str) -> IResult<&str, Input> {
+        map(tag(" -> "), |_| Input {})(input)
+    }
+
+    fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
+        Ok(input
+            .lines()
+            .map(|line| parse_line(line).finish().unwrap().1)
+            .collect())
+    }
 }
 
 fn solve_part1(input: &Vec<Input>) -> u32 {

@@ -6,19 +6,11 @@ use std::{
 };
 
 use itertools::Itertools;
-use nom::{
-    branch::alt,
-    bytes::complete::{tag, take},
-    combinator::map,
-    multi::separated_list1,
-    sequence::{preceded, tuple},
-    Finish, IResult,
-};
 use petgraph::{
     prelude::UnGraph, stable_graph::NodeIndex, visit::IntoNodeReferences, Graph, Undirected,
 };
 
-struct Input<'a> {
+pub struct Input<'a> {
     name: &'a str,
     flow: u32,
     connected: Vec<&'a str>,
@@ -35,7 +27,7 @@ enum Decision {
 }
 
 fn main() -> color_eyre::Result<()> {
-    let input = parse_input(include_str!("../../input/day16.txt"))?;
+    let input = parsing::parse_input(include_str!("../../input/day16.txt"))?;
     let (root, graph) = build_graph(input);
     let now = Instant::now();
     println!(
@@ -52,40 +44,53 @@ fn main() -> color_eyre::Result<()> {
     Ok(())
 }
 
-fn parse_name(input: &str) -> IResult<&str, &str> {
-    preceded(tag("Valve "), take(2u32))(input)
-}
+mod parsing {
+    use nom::{
+        branch::alt,
+        bytes::complete::{tag, take},
+        combinator::map,
+        multi::separated_list1,
+        sequence::{preceded, tuple},
+        Finish, IResult,
+    };
 
-fn parse_flow(input: &str) -> IResult<&str, u32> {
-    preceded(tag(" has flow rate="), nom::character::complete::u32)(input)
-}
+    use super::Input;
 
-fn parse_connected(input: &str) -> IResult<&str, Vec<&str>> {
-    preceded(
-        alt((
-            tag("; tunnels lead to valves "),
-            tag("; tunnel leads to valve "),
-        )),
-        separated_list1(tag(", "), take(2u32)),
-    )(input)
-}
+    fn parse_name(input: &str) -> IResult<&str, &str> {
+        preceded(tag("Valve "), take(2u32))(input)
+    }
 
-fn parse_line(input: &str) -> IResult<&str, Input> {
-    map(
-        tuple((parse_name, parse_flow, parse_connected)),
-        |(name, flow, connected)| Input {
-            name,
-            flow,
-            connected,
-        },
-    )(input)
-}
+    fn parse_flow(input: &str) -> IResult<&str, u32> {
+        preceded(tag(" has flow rate="), nom::character::complete::u32)(input)
+    }
 
-fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
-    Ok(input
-        .lines()
-        .map(|line| parse_line(line).finish().unwrap().1)
-        .collect())
+    fn parse_connected(input: &str) -> IResult<&str, Vec<&str>> {
+        preceded(
+            alt((
+                tag("; tunnels lead to valves "),
+                tag("; tunnel leads to valve "),
+            )),
+            separated_list1(tag(", "), take(2u32)),
+        )(input)
+    }
+
+    fn parse_line(input: &str) -> IResult<&str, Input> {
+        map(
+            tuple((parse_name, parse_flow, parse_connected)),
+            |(name, flow, connected)| Input {
+                name,
+                flow,
+                connected,
+            },
+        )(input)
+    }
+
+    pub fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
+        Ok(input
+            .lines()
+            .map(|line| parse_line(line).finish().unwrap().1)
+            .collect())
+    }
 }
 
 fn build_graph(nodes: Vec<Input>) -> (NodeIndex<u32>, UnGraph<u32, u32>) {
@@ -371,7 +376,7 @@ mod tests {
     // 30 CC [DD, BB, JJ, HH, EE, CC]
     #[test]
     fn test_part1() -> color_eyre::Result<()> {
-        let input = parse_input(include_str!("../../input/day16.test.txt"))?;
+        let input = parsing::parse_input(include_str!("../../input/day16.test.txt"))?;
         let (root, graph) = build_graph(input);
         let result = solve_part1(&root, &graph);
         assert_eq!(result, 1651);
@@ -380,7 +385,7 @@ mod tests {
 
     #[test]
     fn test_part2() -> color_eyre::Result<()> {
-        let input = parse_input(include_str!("../../input/day16.test.txt"))?;
+        let input = parsing::parse_input(include_str!("../../input/day16.test.txt"))?;
         let (root, graph) = build_graph(input);
         let result = solve_part2(&root, &graph);
         assert_eq!(result, 1707);
