@@ -4,7 +4,6 @@ use std::{
 };
 
 use advent_of_code2022::PosCoordinate;
-use itertools::Itertools;
 use shapes::{Cross, HLine, Rock, ShapeType, Square, VLine, L};
 
 #[derive(Clone, Debug)]
