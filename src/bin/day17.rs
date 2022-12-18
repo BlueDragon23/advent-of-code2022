@@ -17,6 +17,10 @@ pub enum Jet {
     Right,
 }
 
+type History = ((u8, u8, u8), usize, ShapeType);
+//                  height, rocks
+type HistoryValue = (u64, u64);
+
 fn main() -> color_eyre::Result<()> {
     let input = parsing::parse_input(include_str!("../../input/day17.txt"));
     let time = Instant::now();
@@ -765,38 +769,48 @@ fn solve(input: &Input, rock_count: u64) -> u64 {
             highest_row = shape.shape.get_highest().row;
         }
         shape = get_next_shape(shape, get_starting_coordinate(highest_row));
-        let occ_state = get_occupied_state(&occupied, highest_row);
-        let next_state = (occ_state, jet_usage_count % jet_cycle, shape.shape_type);
-        if states.contains_key(&next_state) {
-            // we found a loop
-            let previous: &(u64, u64) = states.get(&next_state).unwrap();
-            // also add in the number of rocks (rock_count % cycle length - init_window)
-            let cycle_length = num - previous.1;
-            println!("Cycle length is {}", cycle_length);
-            let remainder = rock_count % cycle_length;
-            let gap = if remainder > previous.1 {
-                remainder - previous.1
-            } else {
-                remainder + cycle_length - previous.1
-            };
-            let repetions = if remainder > previous.1 {
-                rock_count.div_euclid(cycle_length)
-            } else {
-                rock_count.div_euclid(cycle_length) - 1
-            };
-            return (highest_row - previous.0) * repetions
-                + (states
-                    .values()
-                    .find(|(_, n)| *n == previous.1 + gap - 1)
-                    .unwrap()
-                    .0);
-        }
-        states.insert(
-            (occ_state, jet_usage_count % jet_cycle, shape.shape_type),
-            (highest_row, num),
+        let next_state = (
+            get_occupied_state(&occupied, highest_row),
+            jet_usage_count % jet_cycle,
+            shape.shape_type,
         );
+        if states.contains_key(&next_state) {
+            return calculate_result(states, next_state, num, rock_count, highest_row);
+        }
+        states.insert(next_state, (highest_row, num));
     }
     highest_row
+}
+
+fn calculate_result(
+    states: HashMap<History, HistoryValue>,
+    next_state: History,
+    num: u64,
+    rock_count: u64,
+    highest_row: u64,
+) -> u64 {
+    // we found a loop
+    let previous: &(u64, u64) = states.get(&next_state).unwrap();
+    // also add in the number of rocks (rock_count % cycle length - init_window)
+    let cycle_length = num - previous.1;
+    let cycle_height = highest_row - previous.0;
+    let remainder = rock_count % cycle_length;
+    let gap = if remainder > previous.1 {
+        remainder - previous.1
+    } else {
+        remainder + cycle_length - previous.1
+    };
+    let repetions = if remainder > previous.1 {
+        rock_count.div_euclid(cycle_length)
+    } else {
+        rock_count.div_euclid(cycle_length) - 1
+    };
+    cycle_height * repetions
+        + (states
+            .values()
+            .find(|(_, n)| *n == previous.1 + gap - 1)
+            .unwrap()
+            .0)
 }
 
 fn get_occupied_state(occupied: &HashSet<PosCoordinate>, highest_row: u64) -> (u8, u8, u8) {
