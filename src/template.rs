@@ -27,7 +27,7 @@ mod parsing {
         map(tag(" -> "), |_| Input {})(input)
     }
 
-    fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
+    pub fn parse_input(input: &str) -> color_eyre::Result<Vec<Input>> {
         Ok(input
             .lines()
             .map(|line| parse_line(line).finish().unwrap().1)
@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_part1() -> color_eyre::Result<()> {
-        let input = parse_input(include_str!("../../input/example.test.txt"))?;
+        let input = parsing::parse_input(include_str!("../../input/example.test.txt"))?;
         let result = solve_part1(&input);
         assert_eq!(result, 1);
         Ok(())
@@ -57,7 +57,7 @@ mod tests {
 
     #[test]
     fn test_part2() -> color_eyre::Result<()> {
-        let input = parse_input(include_str!("../../input/example.test.txt"))?;
+        let input = parsing::parse_input(include_str!("../../input/example.test.txt"))?;
         let result = solve_part2(&input);
         assert_eq!(result, 1);
         Ok(())

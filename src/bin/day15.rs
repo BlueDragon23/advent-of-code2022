@@ -96,8 +96,7 @@ fn solve_part1(input: &[Input], row: i32) -> i32 {
         let coordinate = Coordinate { row, col };
         if input
             .iter()
-            .find(|i| manhattan_distance(coordinate, i.sensor) <= i.distance)
-            .is_some()
+            .any(|i| manhattan_distance(coordinate, i.sensor) <= i.distance)
             && !beacon_locations.contains(&coordinate)
         {
             count += 1

@@ -13,6 +13,8 @@ pub struct Coordinate<T: PrimInt> {
     pub col: T,
 }
 
+pub type PosCoordinate = Coordinate<u64>;
+
 impl Coordinate<usize> {
     pub fn get<V: Copy>(&self, matrix: &[Vec<V>]) -> V {
         matrix[self.row][self.col]
