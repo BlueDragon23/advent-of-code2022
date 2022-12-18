@@ -1,4 +1,7 @@
-use std::{collections::HashSet, time::Instant};
+use std::{
+    collections::{HashMap, HashSet},
+    time::Instant,
+};
 
 use advent_of_code2022::PosCoordinate;
 use itertools::Itertools;
@@ -64,7 +67,7 @@ mod shapes {
 
     const MAX_COL: u64 = 8;
 
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
     pub enum ShapeType {
         HLine,
         Cross,
@@ -90,25 +93,25 @@ mod shapes {
 
     #[derive(Clone, Copy, Debug)]
     pub struct HLine {
-        bottom: PosCoordinate,
-        centre_bottom: PosCoordinate,
-        centre_top: PosCoordinate,
-        top: PosCoordinate,
+        left: PosCoordinate,
+        centre_left: PosCoordinate,
+        centre_right: PosCoordinate,
+        right: PosCoordinate,
     }
 
     impl HLine {
         pub fn new(coordinate: PosCoordinate) -> Self {
             HLine {
-                bottom: coordinate,
-                centre_bottom: PosCoordinate {
+                left: coordinate,
+                centre_left: PosCoordinate {
                     col: coordinate.col + 1,
                     ..coordinate
                 },
-                centre_top: PosCoordinate {
+                centre_right: PosCoordinate {
                     col: coordinate.col + 2,
                     ..coordinate
                 },
-                top: PosCoordinate {
+                right: PosCoordinate {
                     col: coordinate.col + 3,
                     ..coordinate
                 },
@@ -119,60 +122,60 @@ mod shapes {
     impl Shape for HLine {
         fn move_left(&self, occupied: &HashSet<PosCoordinate>) -> Option<Box<dyn Shape>> {
             let new_left = PosCoordinate {
-                row: self.bottom.row,
-                col: self.bottom.col - 1,
+                row: self.left.row,
+                col: self.left.col - 1,
             };
             if new_left.col == 0 || occupied.contains(&new_left) {
                 return None;
             }
             Some(Box::new(HLine {
-                bottom: new_left,
-                centre_bottom: self.bottom,
-                centre_top: self.centre_bottom,
-                top: self.centre_top,
+                left: new_left,
+                centre_left: self.left,
+                centre_right: self.centre_left,
+                right: self.centre_right,
             }))
         }
 
         fn move_right(&self, occupied: &HashSet<PosCoordinate>) -> Option<Box<dyn Shape>> {
             let new_right = PosCoordinate {
-                row: self.top.row,
-                col: self.top.col + 1,
+                row: self.right.row,
+                col: self.right.col + 1,
             };
             if new_right.col == MAX_COL || occupied.contains(&new_right) {
                 return None;
             }
             Some(Box::new(HLine {
-                bottom: self.centre_bottom,
-                centre_bottom: self.centre_top,
-                centre_top: self.top,
-                top: new_right,
+                left: self.centre_left,
+                centre_left: self.centre_right,
+                centre_right: self.right,
+                right: new_right,
             }))
         }
 
         fn descend(&self, occupied: &HashSet<PosCoordinate>) -> Option<Box<dyn Shape>> {
             let new_self = HLine {
-                bottom: PosCoordinate {
-                    row: self.bottom.row - 1,
-                    col: self.bottom.col,
+                left: PosCoordinate {
+                    row: self.left.row - 1,
+                    col: self.left.col,
                 },
-                centre_bottom: PosCoordinate {
-                    row: self.bottom.row - 1,
-                    col: self.centre_bottom.col,
+                centre_left: PosCoordinate {
+                    row: self.left.row - 1,
+                    col: self.centre_left.col,
                 },
-                centre_top: PosCoordinate {
-                    row: self.bottom.row - 1,
-                    col: self.centre_top.col,
+                centre_right: PosCoordinate {
+                    row: self.left.row - 1,
+                    col: self.centre_right.col,
                 },
-                top: PosCoordinate {
-                    row: self.bottom.row - 1,
-                    col: self.top.col,
+                right: PosCoordinate {
+                    row: self.left.row - 1,
+                    col: self.right.col,
                 },
             };
-            if new_self.bottom.row == 0
-                || occupied.contains(&new_self.bottom)
-                || occupied.contains(&new_self.centre_bottom)
-                || occupied.contains(&new_self.centre_top)
-                || occupied.contains(&new_self.top)
+            if new_self.left.row == 0
+                || occupied.contains(&new_self.left)
+                || occupied.contains(&new_self.centre_left)
+                || occupied.contains(&new_self.centre_right)
+                || occupied.contains(&new_self.right)
             {
                 return None;
             }
@@ -180,11 +183,11 @@ mod shapes {
         }
 
         fn get_coordinates(&self) -> Vec<PosCoordinate> {
-            vec![self.bottom, self.centre_bottom, self.centre_top, self.top]
+            vec![self.left, self.centre_left, self.centre_right, self.right]
         }
 
         fn get_highest(&self) -> PosCoordinate {
-            self.top
+            self.right
         }
     }
 
@@ -720,25 +723,9 @@ fn solve_part1(input: &Input) -> u64 {
     solve(input, 2022)
 }
 
-// remove occupied coordinate below a certain row
-fn prune_occupied(occupied: HashSet<PosCoordinate>, highest_row: u64) -> HashSet<PosCoordinate> {
-    // find the highest row that is entirely occupied
-    let mut highest_occupied = None;
-    for row in (0..=highest_row).rev() {
-        let row_complete = (1..=7).all(|col| occupied.contains(&PosCoordinate { row, col }));
-        if row_complete {
-            highest_occupied = Some(row);
-            break;
-        }
-    }
-    if let Some(highest) = highest_occupied {
-        occupied.into_iter().filter(|&c| c.row >= highest).collect()
-    } else {
-        occupied
-    }
-}
-
 fn solve(input: &Input, rock_count: u64) -> u64 {
+    let jet_cycle = input.jets.len();
+    let mut jet_usage_count = 0;
     let mut jets = input.jets.iter().cycle();
     // initial shape
     let mut shape = Rock {
@@ -747,7 +734,7 @@ fn solve(input: &Input, rock_count: u64) -> u64 {
     };
     let mut highest_row = 0;
     let mut occupied = HashSet::new();
-    let mut time = Instant::now();
+    let mut states = HashMap::new();
     // print_state(&occupied, &shape);
     for num in 0..rock_count {
         // initial move
@@ -756,6 +743,7 @@ fn solve(input: &Input, rock_count: u64) -> u64 {
             Jet::Left => shape.shape.move_left(&occupied),
             Jet::Right => shape.shape.move_right(&occupied),
         } {
+            jet_usage_count += 1;
             shape.shape = next_shape;
         }
 
@@ -769,6 +757,7 @@ fn solve(input: &Input, rock_count: u64) -> u64 {
             } {
                 shape.shape = next_shape;
             }
+            jet_usage_count += 1;
         }
 
         // shape stopped where it landed
@@ -777,19 +766,62 @@ fn solve(input: &Input, rock_count: u64) -> u64 {
             highest_row = shape.shape.get_highest().row;
         }
         shape = get_next_shape(shape, get_starting_coordinate(highest_row));
-
-        if num % 1_000_000 == 0 {
-            occupied = prune_occupied(occupied, highest_row);
-            println!(
-                "Dropped {} rocks in {}ms. Occupied size is {}",
-                num,
-                time.elapsed().as_millis(),
-                occupied.len()
-            );
-            time = Instant::now();
+        let occ_state = get_occupied_state(&occupied, highest_row);
+        let next_state = (occ_state, jet_usage_count % jet_cycle, shape.shape_type);
+        if states.contains_key(&next_state) {
+            // we found a loop
+            let previous: &(u64, u64) = states.get(&next_state).unwrap();
+            // also add in the number of rocks (rock_count % cycle length - init_window)
+            let cycle_length = num - previous.1;
+            println!("Cycle length is {}", cycle_length);
+            let remainder = rock_count % cycle_length;
+            let gap = if remainder > previous.1 {
+                remainder - previous.1
+            } else {
+                remainder + cycle_length - previous.1
+            };
+            let repetions = if remainder > previous.1 {
+                rock_count.div_euclid(cycle_length)
+            } else {
+                rock_count.div_euclid(cycle_length) - 1
+            };
+            return (highest_row - previous.0) * repetions
+                + (states
+                    .values()
+                    .find(|(_, n)| *n == previous.1 + gap - 1)
+                    .unwrap()
+                    .0);
         }
+        states.insert(
+            (occ_state, jet_usage_count % jet_cycle, shape.shape_type),
+            (highest_row, num),
+        );
     }
     highest_row
+}
+
+fn get_occupied_state(occupied: &HashSet<PosCoordinate>, highest_row: u64) -> (u8, u8, u8) {
+    (
+        row_to_int(occupied, highest_row),
+        if highest_row > 1 {
+            row_to_int(occupied, highest_row - 1)
+        } else {
+            u8::MAX
+        },
+        if highest_row > 2 {
+            row_to_int(occupied, highest_row - 2)
+        } else {
+            u8::MAX
+        },
+    )
+}
+
+fn row_to_int(occupied: &HashSet<PosCoordinate>, row: u64) -> u8 {
+    (1..=7)
+        .map(|col| PosCoordinate { col, row })
+        .map(|c| occupied.contains(&c) as u8)
+        .enumerate()
+        .fold(0, |num, (i, value)| num | (value << i))
 }
 
 #[allow(dead_code)]
@@ -826,6 +858,9 @@ fn print_state(occupied: &HashSet<PosCoordinate>, shape: &Rock) {
 }
 
 fn solve_part2(input: &Input) -> u64 {
+    // aaabbbcccdddeee
+    // <<><><<><><<><>
+    // need fall time * jets.len
     solve(input, 1_000_000_000_000)
 }
 
