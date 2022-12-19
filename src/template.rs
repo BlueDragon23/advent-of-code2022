@@ -35,11 +35,11 @@ mod parsing {
     }
 }
 
-fn solve_part1(input: &Vec<Input>) -> u32 {
+fn solve_part1(input: &[Input]) -> u32 {
     1
 }
 
-fn solve_part2(input: &Vec<Input>) -> u32 {
+fn solve_part2(input: &[Input]) -> u32 {
     1
 }
 
