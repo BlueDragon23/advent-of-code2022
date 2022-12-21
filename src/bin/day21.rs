@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    time::Instant, fmt::Display,
-};
+use std::{collections::HashMap, fmt::Display, time::Instant};
 
 #[derive(Debug, Clone)]
 pub struct Input<'a> {
@@ -13,10 +10,10 @@ pub struct Input<'a> {
 pub enum Value<'a> {
     Constant(i64),
     Equation(Operation<'a>),
-    Name(&'a str)
+    Name(&'a str),
 }
 
-impl <'a> Display for Value<'a> {
+impl<'a> Display for Value<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Value::Constant(x) => write!(f, "{}", x),
@@ -33,7 +30,7 @@ pub struct Operation<'a> {
     right: Box<Value<'a>>,
 }
 
-impl <'a> Display for Operation<'a> {
+impl<'a> Display for Operation<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} {} {}", self.left, self.operator, self.right)
     }
@@ -49,12 +46,16 @@ pub enum Operator {
 
 impl Display for Operator {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Operator::Add => " + ",
-            Operator::Multiply => " * ",
-            Operator::Subtract => " - ",
-            Operator::Divide => " / ",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Operator::Add => " + ",
+                Operator::Multiply => " * ",
+                Operator::Subtract => " - ",
+                Operator::Divide => " / ",
+            }
+        )
     }
 }
 
@@ -157,7 +158,7 @@ fn solve_part1(input: &[Input]) -> i64 {
 fn find_value_for_monkey<'a>(
     name: &str,
     monkeys: &HashMap<&str, Value>,
-    part: u32
+    part: u32,
 ) -> Option<Value<'a>> {
     if name == "humn" && part == 2 {
         return Some(Value::Name("humn"));
@@ -170,19 +171,18 @@ fn find_value_for_monkey<'a>(
                     let left = find_value_for_monkey(left_name, monkeys, part)?;
                     let right = find_value_for_monkey(right_name, monkeys, part)?;
                     match (left, right) {
-                        (Value::Constant(l), Value::Constant(r)) => {
-                            match operation.operator {
-                                Operator::Add => l.checked_add(r),
-                                Operator::Multiply => l.checked_mul(r),
-                                Operator::Subtract => l.checked_sub(r),
-                                Operator::Divide => l.checked_div(r),
-                            }.map(|result| Value::Constant(result))
-                        },
+                        (Value::Constant(l), Value::Constant(r)) => match operation.operator {
+                            Operator::Add => l.checked_add(r),
+                            Operator::Multiply => l.checked_mul(r),
+                            Operator::Subtract => l.checked_sub(r),
+                            Operator::Divide => l.checked_div(r),
+                        }
+                        .map(Value::Constant),
                         (value_left, value_right) => Some(Value::Equation(Operation {
                             left: Box::new(value_left),
                             operator: operation.operator,
-                            right: Box::new(value_right)
-                        }))
+                            right: Box::new(value_right),
+                        })),
                     }
                 } else {
                     unreachable!("Not a valid input")
@@ -191,7 +191,7 @@ fn find_value_for_monkey<'a>(
                 unreachable!("Not a valid input")
             }
         }
-        _ => unreachable!("There are no names in the input")
+        _ => unreachable!("There are no names in the input"),
     }
 }
 

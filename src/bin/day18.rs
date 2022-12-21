@@ -1,11 +1,11 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::{HashMap, HashSet, VecDeque},
     time::Instant,
 };
 
 use itertools::Itertools;
 
-#[derive(Eq, PartialEq, Hash, Debug, Clone, Copy)]
+#[derive(Default, Eq, PartialEq, Hash, Debug, Clone, Copy)]
 pub struct Coord3D {
     x: i32,
     y: i32,
@@ -95,10 +95,41 @@ fn solve_part2(input: &[Coord3D]) -> u32 {
                     .for_each(|adj| *surface_cubes.entry(*adj).or_default() += 1);
                 surface_cubes
             });
-    // connected components
-    let mut connected_components: Vec<Vec<Coord3D>> = vec![];
-    let mut seen_cubes: HashSet<Coord3D> = HashSet::new();
-    0
+    let min_x = maybe_surface_cubes.keys().map(|c| c.x).min().unwrap();
+    let min_y = maybe_surface_cubes.keys().map(|c| c.y).min().unwrap();
+    let min_z = maybe_surface_cubes.keys().map(|c| c.z).min().unwrap();
+    let max_x = maybe_surface_cubes.keys().map(|c| c.x).max().unwrap();
+    let max_y = maybe_surface_cubes.keys().map(|c| c.y).max().unwrap();
+    let max_z = maybe_surface_cubes.keys().map(|c| c.z).max().unwrap();
+    dbg!(max_x, max_y, max_z);
+    let mut queue = VecDeque::new();
+    let mut seen = HashSet::new();
+    // explore from a spot known to be outside the lava
+    queue.push_back(Coord3D::default());
+    seen.insert(Coord3D::default());
+    while let Some(next) = queue.pop_front() {
+        get_adjacent_cubes(&next)
+            .iter()
+            .filter(|c| {
+                c.x >= min_x
+                    && c.x <= max_x
+                    && c.y >= min_y
+                    && c.y <= max_y
+                    && c.z >= min_z
+                    && c.z <= max_z
+            })
+            .for_each(|c| {
+                if !seen.contains(c) && !cubes.contains(c) {
+                    queue.push_back(*c);
+                    seen.insert(*c);
+                }
+            });
+    }
+    maybe_surface_cubes
+        .iter()
+        .filter(|(c, _)| seen.contains(c))
+        .map(|(_, count)| count)
+        .sum()
 }
 
 #[cfg(test)]
