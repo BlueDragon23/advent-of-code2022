@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+#[derive(Debug, Clone)]
 pub struct Input {}
 
 fn main() -> color_eyre::Result<()> {
