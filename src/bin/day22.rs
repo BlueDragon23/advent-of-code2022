@@ -145,6 +145,83 @@ impl Map {
             },
         }
     }
+
+    // Return the (target block, target coordinate on that block, new facing)
+    fn wrap_from_position_connected(
+        &self,
+        position: IndexingCoordinate,
+        facing: Facing,
+        connections: &Connections,
+    ) -> (IndexingCoordinate, IndexingCoordinate, Facing) {
+        let (block, target_edge) = match facing {
+            Facing::Right => connections.right,
+            Facing::Down => connections.bottom,
+            Facing::Left => connections.left,
+            Facing::Up => connections.top,
+        };
+        let target_facing = match target_edge {
+            Facing::Right => Facing::Left,
+            Facing::Down => Facing::Up,
+            Facing::Left => Facing::Right,
+            Facing::Up => Facing::Down,
+        };
+        let target_position = match (facing, target_edge) {
+            (Facing::Right, Facing::Right) => IndexingCoordinate {
+                row: self.height - position.row + 1,
+                col: position.col,
+            },
+            (Facing::Right, Facing::Down) => position.transpose(),
+            (Facing::Right, Facing::Left) => IndexingCoordinate {
+                row: position.row,
+                col: self.width - position.col + 1,
+            },
+            (Facing::Right, Facing::Up) => IndexingCoordinate {
+                // should be 1
+                row: self.height - position.col + 1,
+                col: self.width - position.row + 1,
+            },
+            (Facing::Down, Facing::Right) => position.transpose(),
+            (Facing::Down, Facing::Down) => IndexingCoordinate {
+                row: position.row,
+                col: self.width - position.col + 1,
+            },
+            (Facing::Down, Facing::Left) => IndexingCoordinate {
+                row: self.height - position.col + 1,
+                col: self.width - position.row + 1,
+            },
+            (Facing::Down, Facing::Up) => IndexingCoordinate {
+                row: self.height - position.row + 1,
+                col: position.col,
+            },
+            (Facing::Left, Facing::Right) => IndexingCoordinate {
+                row: position.row,
+                col: self.width - position.col + 1,
+            },
+            (Facing::Left, Facing::Down) => IndexingCoordinate {
+                row: self.height - position.col + 1,
+                col: self.width - position.row + 1,
+            },
+            (Facing::Left, Facing::Left) => IndexingCoordinate {
+                row: self.height - position.row + 1,
+                col: position.col,
+            },
+            (Facing::Left, Facing::Up) => position.transpose(),
+            (Facing::Up, Facing::Right) => IndexingCoordinate {
+                row: self.height - position.col + 1,
+                col: self.width - position.row + 1,
+            },
+            (Facing::Up, Facing::Down) => IndexingCoordinate {
+                row: self.height - position.row + 1,
+                col: position.col,
+            },
+            (Facing::Up, Facing::Left) => position.transpose(),
+            (Facing::Up, Facing::Up) => IndexingCoordinate {
+                row: position.row,
+                col: self.width - position.col + 1,
+            },
+        };
+        (block, target_position, target_facing)
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -166,7 +243,7 @@ enum Rotation {
     CounterClockwise,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Facing {
     Right,
     Down,
@@ -204,7 +281,7 @@ fn main() -> color_eyre::Result<()> {
     let time = Instant::now();
     println!(
         "Part 2: {} in {}ms",
-        solve_part2(&input),
+        solve_part2(&input, 50),
         time.elapsed().as_millis()
     );
     Ok(())
@@ -374,6 +451,10 @@ fn solve_part1(input: &Input) -> usize {
     }
     map.print_person(&visited);
     dbg!(position, facing);
+    get_score(position, facing)
+}
+
+fn get_score(position: IndexingCoordinate, facing: Facing) -> usize {
     position.row * 1000
         + position.col * 4
         + match facing {
@@ -384,8 +465,283 @@ fn solve_part1(input: &Input) -> usize {
         }
 }
 
-fn solve_part2(input: &Input) -> u32 {
-    1
+fn solve_part2(input: &Input, grid_size: usize) -> usize {
+    let map = &input.map;
+    // divide map into six cube faces
+    // get the top left corners of each grid
+    let blocks = (1..map.height)
+        .step_by(grid_size)
+        .cartesian_product((1..map.width).step_by(grid_size))
+        .map(|(row, col)| IndexingCoordinate { row, col })
+        .filter(|c| {
+            matches!(
+                map.get_contents(*c),
+                Some(Contents::Empty) | Some(Contents::Rock)
+            )
+        })
+        .map(|c| {
+            // normalise coordinates
+            ((c.row - 1) / grid_size, (c.col - 1) / grid_size)
+        })
+        .collect_vec();
+    assert_eq!(blocks.len(), 6);
+    // find adjacent edges
+    // we know the coordinates are in row, then col order. Pattern match them
+    // map from each block, to the blocks it's connected to
+    let connections: HashMap<IndexingCoordinate, Connections> = build_connections(&blocks);
+    let maps: HashMap<(usize, usize), Map> = blocks
+        .iter()
+        .map(|&b| (b, build_map(b, grid_size, map)))
+        .collect();
+
+    // position relative to the local map. Need to translate back for the final score
+    let mut position = IndexingCoordinate { row: 1, col: 1 };
+    let mut facing = Facing::Right;
+    let mut visited = HashMap::new();
+    let mut current_block = *blocks.first().unwrap();
+    let mut current_map = &maps[&current_block];
+    for instruction in &input.instructions {
+        match instruction {
+            Instruction::Move(distance) => {
+                for _ in 0..*distance {
+                    let next_coord = move_direction(position, facing);
+                    let contents = current_map.get_contents(next_coord);
+                    match contents {
+                        None => {
+                            let (new_block, alt_coord, new_facing) = current_map
+                                .wrap_from_position_connected(
+                                    position,
+                                    facing,
+                                    connections.get(&current_block.into()).unwrap(),
+                                );
+                            let new_map = &maps[&(new_block.row, new_block.col)];
+                            match new_map.get_contents(alt_coord) {
+                                Some(Contents::Rock) => {
+                                    break;
+                                }
+                                Some(Contents::Empty) => {
+                                    position = alt_coord;
+                                    current_block = (new_block.row, new_block.col);
+                                    facing = new_facing;
+                                    current_map = new_map;
+                                }
+                                _ => unreachable!("Invalid contents at {:?}", alt_coord),
+                            }
+                        }
+                        Some(Contents::Rock) => {
+                            // we stop
+                            break;
+                        }
+                        Some(Contents::Empty) => position = next_coord,
+                        Some(Contents::Void) => unreachable!("There is no void now"),
+                    }
+                    visited.insert(
+                        get_real_position(current_block, grid_size, position),
+                        facing,
+                    );
+                }
+            }
+            Instruction::Rotate(rotation) => match rotation {
+                Rotation::Clockwise => facing = facing.rotate_clockwise(),
+                Rotation::CounterClockwise => facing = facing.rotate_counter_clockwise(),
+            },
+        }
+        visited.insert(
+            get_real_position(current_block, grid_size, position),
+            facing,
+        );
+    }
+    map.print_person(&visited);
+
+    dbg!(current_block, position);
+    // convert back to "real" position
+    let real_position = get_real_position(current_block, grid_size, position);
+    dbg!(real_position);
+    get_score(real_position, facing)
+}
+
+fn get_real_position(
+    block: (usize, usize),
+    grid_size: usize,
+    position: IndexingCoordinate,
+) -> IndexingCoordinate {
+    IndexingCoordinate {
+        row: block.0 * grid_size + position.row,
+        col: block.1 * grid_size + position.col,
+    }
+}
+
+fn build_map(block: (usize, usize), grid_size: usize, original_map: &Map) -> Map {
+    let terrain = original_map
+        .terrain
+        .iter()
+        .chunks(grid_size)
+        .into_iter()
+        // find the start of our block
+        .skip(block.0 * original_map.width + block.1)
+        // split into map width number of blocks
+        .chunks(original_map.width / grid_size)
+        .into_iter()
+        // grab the first one (which will be the block column we want)
+        .map(|mut chunk| chunk.next().unwrap())
+        .take(grid_size)
+        .flat_map(|chunk| chunk.collect_vec())
+        .copied()
+        // pull that bad boy out
+        .collect_vec();
+    Map {
+        width: grid_size,
+        height: grid_size,
+        terrain,
+    }
+}
+
+fn build_connections(blocks: &Vec<(usize, usize)>) -> HashMap<IndexingCoordinate, Connections> {
+    let connections = match blocks[..] {
+        [(0, 2), (1, 0), (1, 1), (1, 2), (2, 2), (2, 3)] => {
+            let mut conns = HashMap::new();
+            conns.insert(
+                (0, 2).into(),
+                Connections {
+                    top: ((1, 0).into(), Facing::Up),
+                    left: ((1, 1).into(), Facing::Up),
+                    right: ((2, 3).into(), Facing::Right),
+                    bottom: ((1, 2).into(), Facing::Up),
+                },
+            );
+            conns.insert(
+                (1, 0).into(),
+                Connections {
+                    top: ((0, 2).into(), Facing::Up),
+                    left: ((2, 3).into(), Facing::Down),
+                    right: ((1, 1).into(), Facing::Left),
+                    bottom: ((2, 2).into(), Facing::Down),
+                },
+            );
+            conns.insert(
+                (1, 1).into(),
+                Connections {
+                    top: ((0, 2).into(), Facing::Left),
+                    left: ((1, 0).into(), Facing::Right),
+                    right: ((1, 2).into(), Facing::Left),
+                    bottom: ((2, 2).into(), Facing::Left),
+                },
+            );
+            conns.insert(
+                (1, 2).into(),
+                Connections {
+                    top: ((0, 2).into(), Facing::Down),
+                    left: ((1, 1).into(), Facing::Right),
+                    right: ((2, 3).into(), Facing::Up),
+                    bottom: ((2, 2).into(), Facing::Up),
+                },
+            );
+            conns.insert(
+                (2, 2).into(),
+                Connections {
+                    top: ((1, 2).into(), Facing::Down),
+                    left: ((1, 1).into(), Facing::Down),
+                    right: ((2, 3).into(), Facing::Left),
+                    bottom: ((1, 0).into(), Facing::Down),
+                },
+            );
+            conns.insert(
+                (2, 3).into(),
+                Connections {
+                    top: ((1, 2).into(), Facing::Right),
+                    left: ((2, 2).into(), Facing::Right),
+                    right: ((0, 2).into(), Facing::Right),
+                    bottom: ((1, 0).into(), Facing::Left),
+                },
+            );
+            conns
+        }
+        [(0, 1), (0, 2), (1, 1), (2, 0), (2, 1), (3, 0)] => {
+            let mut conns = HashMap::new();
+            conns.insert(
+                (0, 1).into(),
+                Connections {
+                    top: ((3, 0).into(), Facing::Left),
+                    left: ((2, 0).into(), Facing::Left),
+                    right: ((0, 2).into(), Facing::Left),
+                    bottom: ((1, 1).into(), Facing::Up),
+                },
+            );
+            conns.insert(
+                (0, 2).into(),
+                Connections {
+                    top: ((3, 0).into(), Facing::Down),
+                    left: ((0, 1).into(), Facing::Right),
+                    right: ((2, 1).into(), Facing::Right),
+                    bottom: ((1, 1).into(), Facing::Right),
+                },
+            );
+            conns.insert(
+                (1, 1).into(),
+                Connections {
+                    top: ((0, 1).into(), Facing::Down),
+                    left: ((2, 0).into(), Facing::Up),
+                    right: ((0, 2).into(), Facing::Down),
+                    bottom: ((2, 1).into(), Facing::Up),
+                },
+            );
+            conns.insert(
+                (2, 0).into(),
+                Connections {
+                    top: ((1, 1).into(), Facing::Left),
+                    left: ((0, 1).into(), Facing::Left),
+                    right: ((2, 1).into(), Facing::Left),
+                    bottom: ((3, 0).into(), Facing::Up),
+                },
+            );
+            conns.insert(
+                (2, 1).into(),
+                Connections {
+                    top: ((1, 1).into(), Facing::Down),
+                    left: ((2, 0).into(), Facing::Right),
+                    right: ((0, 2).into(), Facing::Right),
+                    bottom: ((3, 0).into(), Facing::Right),
+                },
+            );
+            conns.insert(
+                (3, 0).into(),
+                Connections {
+                    top: ((2, 0).into(), Facing::Down),
+                    left: ((0, 1).into(), Facing::Up),
+                    right: ((2, 1).into(), Facing::Down),
+                    bottom: ((0, 2).into(), Facing::Up),
+                },
+            );
+            conns
+        }
+        _ => panic!("Unknown cube net...pretend there's 9 more here"),
+    };
+    assert!(blocks.iter().all(|&b| {
+        let b_coord: IndexingCoordinate = b.into();
+        [Facing::Up, Facing::Right, Facing::Down, Facing::Left]
+            .iter()
+            .all(|&f| {
+                let inner = connections.iter().any(|(_, c)| {
+                    c.top == (b_coord, f)
+                        || c.left == (b_coord, f)
+                        || c.right == (b_coord, f)
+                        || c.bottom == (b_coord, f)
+                });
+                if !inner {
+                    dbg!(b, f);
+                }
+                inner
+            })
+    }));
+    connections
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Connections {
+    top: (IndexingCoordinate, Facing),
+    left: (IndexingCoordinate, Facing),
+    right: (IndexingCoordinate, Facing),
+    bottom: (IndexingCoordinate, Facing),
 }
 
 #[cfg(test)]
@@ -403,8 +759,8 @@ mod tests {
     #[test]
     fn test_part2() -> color_eyre::Result<()> {
         let input = parsing::parse_input(include_str!("../../input/day22.test.txt"))?;
-        let result = solve_part2(&input);
-        assert_eq!(result, 1);
+        let result = solve_part2(&input, 4);
+        assert_eq!(result, 5031);
         Ok(())
     }
 }

@@ -1,4 +1,6 @@
 use std::{
+    cell::RefCell,
+    collections::HashMap,
     ops::{Add, AddAssign, Mul, Sub},
     time::Instant,
 };
@@ -14,7 +16,7 @@ pub struct Template {
     geode_cost: Resources,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 struct Robots {
     ore: u32,
     clay: u32,
@@ -35,7 +37,7 @@ impl Add for Robots {
     }
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 struct Resources {
     ore: u32,
     clay: u32,
@@ -90,6 +92,8 @@ impl Mul<u32> for Resources {
         }
     }
 }
+
+type State = (Resources, Robots, u32);
 
 fn main() -> color_eyre::Result<()> {
     let input = parsing::parse_input(include_str!("../../input/day19.txt"))?;
@@ -208,7 +212,13 @@ fn solve_part1(input: &[Template]) -> u32 {
                 ..Robots::default()
             };
             let resources = Resources::default();
-            let max_geodes = find_max_geodes(&resources, template, &robots, 24);
+            let max_geodes = find_max_geodes(
+                &resources,
+                template,
+                &robots,
+                24,
+                &RefCell::new(HashMap::new()),
+            );
             dbg!(max_geodes);
             (max_geodes, template.id)
         })
@@ -224,13 +234,17 @@ fn find_max_geodes(
     template: &Template,
     robots: &Robots,
     time_remaining: u32,
+    memoising: &RefCell<HashMap<State, u32>>,
 ) -> u32 {
     if time_remaining == 0 {
         return resources.geode;
     }
-    if resources.ore > 50 || robots.ore > 10 {
-        // early return on this heuristic, there's no path where we want this much ore
-        return 0;
+    if let Some((_, value)) =
+        memoising
+            .borrow()
+            .get_key_value(&(*resources, *robots, time_remaining))
+    {
+        return *value;
     }
     // Gather before adding robots
     let gathered_resources = Resources {
@@ -241,7 +255,7 @@ fn find_max_geodes(
     };
     // After building new robots
     let new_resources = *resources + gathered_resources;
-    build_robots(resources, template)
+    let result = build_robots(resources, template, robots)
         .iter()
         .map(|(cost, added_robots)| {
             let after_cost = new_resources - *cost;
@@ -250,27 +264,44 @@ fn find_max_geodes(
                 template,
                 &(*robots + *added_robots),
                 time_remaining - 1,
+                memoising,
             )
         })
         .max()
-        .unwrap()
+        .unwrap();
+    memoising
+        .borrow_mut()
+        .insert((*resources, *robots, time_remaining), result);
+    result
 }
 
 // generate all possible combinations of resources spent and robots built
-fn build_robots(resources: &Resources, template: &Template) -> Vec<(Resources, Robots)> {
+fn build_robots(
+    resources: &Resources,
+    template: &Template,
+    current_robots: &Robots,
+) -> Vec<(Resources, Robots)> {
     let max_geodes = get_max_robots(resources, &template.geode_cost);
     let mut results = vec![];
     // always build the maximum geode robots
     let geode_robots = max_geodes;
     let remaining = *resources - (template.geode_cost * geode_robots);
     let max_obsidian = get_max_robots(&remaining, &template.obsidian_cost);
-    for obsidian_robots in 0..=max_obsidian {
+    for obsidian_robots in (0..=max_obsidian).rev() {
         let remaining = remaining - (template.obsidian_cost * obsidian_robots);
-        let max_clay = get_max_robots(&remaining, &template.clay_cost);
-        for clay_robots in 0..=max_clay {
+        let max_clay = if current_robots.clay > 5 {
+            0
+        } else {
+            get_max_robots(&remaining, &template.clay_cost)
+        };
+        for clay_robots in (0..=max_clay).rev() {
             let remaining = remaining - (template.clay_cost * clay_robots);
-            let max_ore = get_max_robots(&remaining, &template.ore_cost);
-            for ore_robots in 0..=max_ore {
+            let max_ore = if current_robots.ore > 5 {
+                0
+            } else {
+                get_max_robots(&remaining, &template.ore_cost)
+            };
+            for ore_robots in (0..=max_ore).rev() {
                 let remaining = remaining - (template.ore_cost * ore_robots);
                 results.push((
                     // spent resources
@@ -357,7 +388,7 @@ mod tests {
             obsidian: 8,
             geode: 0,
         };
-        let actual = build_robots(&resources, &template);
+        let actual = build_robots(&resources, &template, &Robots::default());
         let expected = vec![(
             resources,
             Robots {
@@ -401,7 +432,7 @@ mod tests {
             obsidian: 0,
             geode: 0,
         };
-        let actual = build_robots(&resources, &template);
+        let actual = build_robots(&resources, &template, &Robots::default());
         let expected = vec![(
             Resources::default(),
             Robots {

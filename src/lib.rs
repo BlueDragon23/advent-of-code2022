@@ -23,9 +23,25 @@ impl Coordinate<usize> {
     }
 }
 
+impl Into<Coordinate<usize>> for (usize, usize) {
+    fn into(self) -> Coordinate<usize> {
+        Coordinate {
+            row: self.0,
+            col: self.1,
+        }
+    }
+}
+
 impl<T: PrimInt> Coordinate<T> {
     pub fn new(row: T, col: T) -> Coordinate<T> {
         Coordinate { row, col }
+    }
+
+    pub fn from(pair: (T, T)) -> Coordinate<T> {
+        Coordinate {
+            row: pair.0,
+            col: pair.1,
+        }
     }
 
     pub fn get_between(&self, other: &Coordinate<T>) -> Vec<Coordinate<T>> {
@@ -42,6 +58,13 @@ impl<T: PrimInt> Coordinate<T> {
                 .collect_vec()
         } else {
             panic!("Invalid coordinates passed, must form a straight line");
+        }
+    }
+
+    pub fn transpose(&self) -> Coordinate<T> {
+        Coordinate {
+            row: self.col,
+            col: self.row,
         }
     }
 }
