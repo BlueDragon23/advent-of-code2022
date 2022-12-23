@@ -2,6 +2,7 @@ use std::cmp::{max, min};
 use std::fs::File;
 use std::io::BufReader;
 use std::io::{BufRead, Lines};
+use std::ops::Add;
 
 use itertools::Itertools;
 use num::{range_inclusive, PrimInt};
@@ -25,6 +26,15 @@ impl Coordinate<usize> {
 
 impl Into<Coordinate<usize>> for (usize, usize) {
     fn into(self) -> Coordinate<usize> {
+        Coordinate {
+            row: self.0,
+            col: self.1,
+        }
+    }
+}
+
+impl Into<Coordinate<i32>> for (i32, i32) {
+    fn into(self) -> Coordinate<i32> {
         Coordinate {
             row: self.0,
             col: self.1,
@@ -65,6 +75,17 @@ impl<T: PrimInt> Coordinate<T> {
         Coordinate {
             row: self.col,
             col: self.row,
+        }
+    }
+}
+
+impl<T: PrimInt> Add for Coordinate<T> {
+    type Output = Coordinate<T>;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Coordinate {
+            row: self.row + rhs.row,
+            col: self.col + rhs.col,
         }
     }
 }
