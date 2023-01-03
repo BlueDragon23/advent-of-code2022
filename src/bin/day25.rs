@@ -16,12 +16,6 @@ fn main() -> color_eyre::Result<()> {
         solve_part1(&input),
         time.elapsed().as_millis()
     );
-    let time = Instant::now();
-    println!(
-        "Part 2: {} in {}ms",
-        solve_part2(&input),
-        time.elapsed().as_millis()
-    );
     Ok(())
 }
 
@@ -57,11 +51,11 @@ mod parsing {
 }
 
 fn snafu_to_decimal(snafu: &[i64]) -> i64 {
-    let mut total = 0;
-    for (power, digit) in snafu.iter().rev().enumerate() {
-        total += digit * pow(5, power);
-    }
-    total
+    snafu
+        .iter()
+        .rev()
+        .enumerate()
+        .fold(0, |total, (power, digit)| total + digit * pow(5, power))
 }
 
 fn digit_to_snafu(number: i64) -> char {
@@ -98,10 +92,6 @@ fn solve_part1(input: &[Input]) -> String {
     decimal_to_snafu(result)
 }
 
-fn solve_part2(input: &[Input]) -> u32 {
-    1
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,14 +117,6 @@ mod tests {
         let input = parsing::parse_input(include_str!("../../input/day25.test.txt"))?;
         let result = solve_part1(&input);
         assert_eq!(result, "2=-1=0");
-        Ok(())
-    }
-
-    #[test]
-    fn test_part2() -> color_eyre::Result<()> {
-        let input = parsing::parse_input(include_str!("../../input/day25.test.txt"))?;
-        let result = solve_part2(&input);
-        assert_eq!(result, 1);
         Ok(())
     }
 }
